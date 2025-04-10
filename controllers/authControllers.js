@@ -1,10 +1,15 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 
-// Generate JWT Token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
+const generateAccessToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_ACCESS_SECRET, {
+    expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m'
+  });
+};
+
+const generateRefreshToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
   });
 };
 
@@ -12,7 +17,6 @@ export const signup = async (req, res) => {
   try {
     const { teamName, teamLeaderName, email, studentId, password, confirmPassword } = req.body;
 
-    // Check if all fields are provided
     if (!teamName || !teamLeaderName || !email || !studentId || !password) {
       return res.status(400).json({
         success: false,
@@ -20,7 +24,6 @@ export const signup = async (req, res) => {
       });
     }
 
-    // Check if passwords match
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -28,7 +31,6 @@ export const signup = async (req, res) => {
       });
     }
 
-    // Check if user already exists with the provided email
     const existingUserEmail = await User.findOne({ email });
     if (existingUserEmail) {
       return res.status(400).json({
@@ -37,7 +39,6 @@ export const signup = async (req, res) => {
       });
     }
 
-    // Check if user already exists with the provided student ID
     const existingUserStudentId = await User.findOne({ studentId });
     if (existingUserStudentId) {
       return res.status(400).json({
@@ -46,7 +47,6 @@ export const signup = async (req, res) => {
       });
     }
 
-    // Create user
     const user = await User.create({
       teamName,
       teamLeaderName,
@@ -55,27 +55,27 @@ export const signup = async (req, res) => {
       password
     });
 
-    // Generate token
-    const token = generateToken(user._id);
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
 
-    // Return token in cookie
-    const options = {
+    const cookieOptions = {
       expires: new Date(
-        Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
+        Date.now() + (process.env.JWT_REFRESH_COOKIE_EXPIRE || 7) * 24 * 60 * 60 * 1000
       ),
       httpOnly: true
     };
 
     if (process.env.NODE_ENV === 'production') {
-      options.secure = true;
+      cookieOptions.secure = true;
     }
 
     res
       .status(201)
-      .cookie('token', token, options)
+      .cookie('refreshToken', refreshToken, cookieOptions)
       .json({
         success: true,
-        token
+        accessToken,
+        refreshToken
       });
   } catch (err) {
     console.error(err);
@@ -90,7 +90,6 @@ export const signin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if email and password are provided
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -98,7 +97,6 @@ export const signin = async (req, res) => {
       });
     }
 
-    // Check for user
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
@@ -108,7 +106,6 @@ export const signin = async (req, res) => {
       });
     }
 
-    // Check if password matches
     const isMatch = await user.matchPassword(password);
 
     if (!isMatch) {
@@ -118,32 +115,69 @@ export const signin = async (req, res) => {
       });
     }
 
-    const token = generateToken(user._id);
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
 
-    // Return token in cookie
-    const options = {
+    const cookieOptions = {
       expires: new Date(
-        Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
+        Date.now() + (process.env.JWT_REFRESH_COOKIE_EXPIRE || 7) * 24 * 60 * 60 * 1000
       ),
       httpOnly: true
     };
 
     if (process.env.NODE_ENV === 'production') {
-      options.secure = true;
+      cookieOptions.secure = true;
     }
 
     res
       .status(200)
-      .cookie('token', token, options)
+      .cookie('refreshToken', refreshToken, cookieOptions)
       .json({
         success: true,
-        token
+        accessToken,
+        refreshToken
       });
   } catch (err) {
     console.error(err);
     res.status(500).json({
       success: false,
       message: 'Server error'
+    });
+  }
+};
+
+export const refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.cookies;
+    
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'No refresh token provided'
+      });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid refresh token'
+      });
+    }
+
+    const accessToken = generateAccessToken(user._id);
+
+    res.status(200).json({
+      success: true,
+      accessToken
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid refresh token'
     });
   }
 };
@@ -166,7 +200,7 @@ export const getMe = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-  res.cookie('token', 'none', {
+  res.cookie('refreshToken', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true
   });
