@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { connectDB } from './config/db.js';
 import authRoutes from './routes/auth.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -29,3 +30,6 @@ app.get('/health', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+
+app.use('/api/admin', adminRoutes);
