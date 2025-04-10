@@ -1,14 +1,14 @@
-// authControllers.js
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
+import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
 
+// Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE
   });
 };
 
-exports.signup = async (req, res) => {
+export const signup = async (req, res) => {
   try {
     const { teamName, teamLeaderName, email, studentId, password, confirmPassword } = req.body;
 
@@ -86,7 +86,7 @@ exports.signup = async (req, res) => {
   }
 };
 
-exports.signin = async (req, res) => {
+export const signin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -118,7 +118,6 @@ exports.signin = async (req, res) => {
       });
     }
 
-
     const token = generateToken(user._id);
 
     // Return token in cookie
@@ -149,7 +148,7 @@ exports.signin = async (req, res) => {
   }
 };
 
-exports.getMe = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     
@@ -166,7 +165,7 @@ exports.getMe = async (req, res) => {
   }
 };
 
-exports.logout = (req, res) => {
+export const logout = (req, res) => {
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true
