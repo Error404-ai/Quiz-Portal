@@ -5,24 +5,23 @@ import cookieParser from 'cookie-parser';
 import { connectDB } from './config/db.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
+import adminDashboardRoutes from './routes/adminDashboard.js';
+import quizRoutes from './routes/quiz.js';
 
 dotenv.config();
 
-// Connect to database
 connectDB();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-// Routes
+
 app.use('/api/auth', authRoutes);
 
-// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -33,3 +32,7 @@ app.listen(port, () => {
 
 
 app.use('/api/admin', adminRoutes);
+
+// Use the routes
+app.use('/api/admin/dashboard', adminDashboardRoutes);
+app.use('/api/quiz', quizRoutes);

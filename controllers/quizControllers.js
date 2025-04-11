@@ -137,3 +137,44 @@ export const getUserResult = async (req, res) => {
     });
   }
 };
+
+export const updateQuizDetails = async (req, res) => {
+  try {
+    const { title, description, timeLimit, difficulty } = req.body;
+    
+    let quiz = await Quiz.findOne();
+    
+    if (quiz) {
+      quiz.title = title;
+      quiz.description = description;
+      quiz.timeLimit = timeLimit;
+      quiz.difficulty = difficulty;
+      await quiz.save();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Quiz details updated successfully',
+        data: quiz
+      });
+    }
+    
+    quiz = await Quiz.create({
+      title,
+      description,
+      timeLimit,
+      difficulty
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Quiz created successfully',
+      data: quiz
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
