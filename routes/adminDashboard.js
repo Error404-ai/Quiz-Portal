@@ -6,9 +6,9 @@ import {
   getQuizResults, 
   updateQuizStatus,
   getQuiz,
-  getQuizDetails
+  getQuizDetails,
+  updateQuizDetailsAdmin
 } from '../controllers/adminDashboardControllers.js';
-import { updateQuizDetails } from '../controllers/quizControllers.js';
 
 const router = express.Router();
 
@@ -20,6 +20,6 @@ router.get('/quiz/details', getQuizDetails);
 router.put('/quiz/questions', updateQuizQuestions);
 router.get('/results', getQuizResults);
 router.patch('/quiz/status', updateQuizStatus);
-router.put('/quiz/details', updateQuizDetails);
+router.put('/quiz/details', updateQuizDetailsAdmin); 
 
 export default router;

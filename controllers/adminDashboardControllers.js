@@ -201,3 +201,72 @@ export const getQuizDetails = async (req, res) => {
     });
   }
 };
+
+// New function to handle quiz details update for admin
+export const updateQuizDetailsAdmin = async (req, res) => {
+  try {
+    const { title, description, timeLimit, difficulty } = req.body;
+    
+    // Validate input
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title is required'
+      });
+    }
+    
+    // Validate difficulty if provided
+    if (difficulty && !['easy', 'medium', 'hard'].includes(difficulty)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Difficulty must be easy, medium, or hard'
+      });
+    }
+    
+    // Validate timeLimit if provided
+    if (timeLimit !== undefined && (isNaN(timeLimit) || timeLimit < 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Time limit must be a positive number or zero'
+      });
+    }
+    
+    let quiz = await Quiz.findOne();
+    
+    if (quiz) {
+      // Update only the fields that were provided
+      if (title) quiz.title = title;
+      if (description !== undefined) quiz.description = description;
+      if (timeLimit !== undefined) quiz.timeLimit = timeLimit;
+      if (difficulty) quiz.difficulty = difficulty;
+      
+      await quiz.save();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Quiz details updated successfully',
+        data: quiz
+      });
+    }
+    
+    // Create a new quiz if none exists
+    quiz = await Quiz.create({
+      title,
+      description: description || '',
+      timeLimit: timeLimit || 0,
+      difficulty: difficulty || 'medium'
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Quiz created successfully',
+      data: quiz
+    });
+  } catch (err) {
+    console.error('Error updating quiz details:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
