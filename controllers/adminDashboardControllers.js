@@ -270,3 +270,37 @@ export const updateQuizDetailsAdmin = async (req, res) => {
     });
   }
 };
+
+// New function to delete/reset quiz details
+export const deleteQuizDetails = async (req, res) => {
+  try {
+    const quiz = await Quiz.findOne();
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+    
+    // Reset the quiz details to default values
+    quiz.title = "Main Quiz"; // Using the default from your schema
+    quiz.description = ""; // Empty string as default
+    quiz.timeLimit = 0; // 0 as default
+    quiz.difficulty = "medium"; // medium as default
+    
+    await quiz.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Quiz details reset to default values',
+      data: quiz
+    });
+  } catch (err) {
+    console.error('Error deleting quiz details:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};

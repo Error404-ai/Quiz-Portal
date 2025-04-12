@@ -7,7 +7,8 @@ import {
   updateQuizStatus,
   getQuiz,
   getQuizDetails,
-  updateQuizDetailsAdmin
+  updateQuizDetailsAdmin,
+  deleteQuizDetails
 } from '../controllers/adminDashboardControllers.js';
 
 const router = express.Router();
@@ -20,6 +21,7 @@ router.get('/quiz/details', getQuizDetails);
 router.put('/quiz/questions', updateQuizQuestions);
 router.get('/results', getQuizResults);
 router.patch('/quiz/status', updateQuizStatus);
-router.put('/quiz/details', updateQuizDetailsAdmin); 
+router.put('/quiz/details', updateQuizDetailsAdmin);
+router.delete('/quiz/details', deleteQuizDetails); 
 
 export default router;
