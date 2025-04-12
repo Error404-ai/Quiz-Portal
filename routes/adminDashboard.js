@@ -2,6 +2,7 @@ import express from 'express';
 import { protectAdmin } from '../middleware/adminAuth.js';
 import { 
   getRegisteredTeams, 
+  getAllQuizzes, 
   updateQuizQuestions, 
   getQuizResults, 
   updateQuizStatus,
@@ -16,6 +17,7 @@ const router = express.Router();
 router.use(protectAdmin);
 
 router.get('/teams', getRegisteredTeams);
+router.get('/quizzes', getAllQuizzes); 
 router.get('/quiz', getQuiz);
 router.get('/quiz/details', getQuizDetails);
 router.put('/quiz/questions', updateQuizQuestions);
