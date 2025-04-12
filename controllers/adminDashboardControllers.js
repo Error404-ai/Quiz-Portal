@@ -180,6 +180,9 @@ export const getQuizDetails = async (req, res) => {
     const quizDetails = {
       _id: quiz._id,
       title: quiz.title,
+      description: quiz.description || "",
+      timeLimit: quiz.timeLimit || 0,
+      difficulty: quiz.difficulty || "medium",
       status: quiz.status,
       startTime: quiz.startTime,
       endTime: quiz.endTime,
