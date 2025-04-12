@@ -1,4 +1,3 @@
-
 import User from '../models/User.js';
 import Quiz from '../models/quiz.js';
 import Result from '../models/result.js';
@@ -97,7 +96,6 @@ export const getQuizResults = async (req, res) => {
   }
 };
 
-// 4. Control Quiz Status (Start/End)
 export const updateQuizStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -118,10 +116,8 @@ export const updateQuizStatus = async (req, res) => {
       });
     }
     
-    // Update quiz status
     quiz.status = status;
     
-    // Set start/end time based on status
     if (status === 'active' && !quiz.startTime) {
       quiz.startTime = new Date();
     }
@@ -146,7 +142,6 @@ export const updateQuizStatus = async (req, res) => {
   }
 };
 
-// Get current quiz status and questions
 export const getQuiz = async (req, res) => {
   try {
     const quiz = await Quiz.findOne();
@@ -161,6 +156,39 @@ export const getQuiz = async (req, res) => {
     res.status(200).json({
       success: true,
       data: quiz
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
+export const getQuizDetails = async (req, res) => {
+  try {
+    const quiz = await Quiz.findOne();
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+    
+    const quizDetails = {
+      _id: quiz._id,
+      title: quiz.title,
+      status: quiz.status,
+      startTime: quiz.startTime,
+      endTime: quiz.endTime,
+      createdAt: quiz.createdAt
+    };
+    
+    res.status(200).json({
+      success: true,
+      data: quizDetails
     });
   } catch (err) {
     console.error(err);
