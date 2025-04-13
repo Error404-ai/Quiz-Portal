@@ -20,7 +20,7 @@ export const getRegisteredTeams = async (req, res) => {
   }
 };
 
-export const updateQuizQuestions = async (req, res) => {
+export const Questions = async (req, res) => {
   try {
     const { questions, _id } = req.body;
     
@@ -84,6 +84,8 @@ export const updateQuizQuestions = async (req, res) => {
   }
 };
 
+import Quiz from '../models/quiz.js';
+
 export const updateQuizDetailsAdmin = async (req, res) => {
   try {
     const { title, description, timeLimit, difficulty, _id } = req.body;
@@ -102,7 +104,7 @@ export const updateQuizDetailsAdmin = async (req, res) => {
       });
     }
     
-    if (timeLimit !== undefined && (isNaN(timeLimit) || timeLimit < 0)) {
+    if (timeLimit !== undefined && (isNaN(parseInt(timeLimit)) || parseInt(timeLimit) < 0)) {
       return res.status(400).json({
         success: false,
         message: 'Time limit must be a positive number or zero'
@@ -113,12 +115,17 @@ export const updateQuizDetailsAdmin = async (req, res) => {
     
     if (_id) {
       quiz = await Quiz.findById(_id);
-    }
-    
-    if (quiz) {
-      if (title) quiz.title = title;
+      
+      if (!quiz) {
+        return res.status(404).json({
+          success: false,
+          message: 'Quiz not found'
+        });
+      }
+      
+      quiz.title = title;
       if (description !== undefined) quiz.description = description;
-      if (timeLimit !== undefined) quiz.timeLimit = timeLimit;
+      if (timeLimit !== undefined) quiz.timeLimit = parseInt(timeLimit);
       if (difficulty) quiz.difficulty = difficulty;
       
       await quiz.save();
@@ -128,25 +135,26 @@ export const updateQuizDetailsAdmin = async (req, res) => {
         message: 'Quiz details updated successfully',
         data: quiz
       });
+    } else {
+      quiz = await Quiz.create({
+        title,
+        description: description || '',
+        timeLimit: timeLimit !== undefined ? parseInt(timeLimit) : 0,
+        difficulty: difficulty || 'medium'
+      });
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Quiz created successfully',
+        data: quiz
+      });
     }
-
-    quiz = await Quiz.create({
-      title,
-      description: description || '',
-      timeLimit: timeLimit || 0,
-      difficulty: difficulty || 'medium'
-    });
-    
-    res.status(201).json({
-      success: true,
-      message: 'Quiz created successfully',
-      data: quiz
-    });
   } catch (err) {
     console.error('Error updating quiz details:', err);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 };
