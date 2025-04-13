@@ -84,8 +84,6 @@ export const Questions = async (req, res) => {
   }
 };
 
-import Quiz from '../models/quiz.js';
-
 export const updateQuizDetailsAdmin = async (req, res) => {
   try {
     const { title, description, timeLimit, difficulty, _id } = req.body;
