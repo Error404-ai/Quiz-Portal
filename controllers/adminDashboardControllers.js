@@ -214,7 +214,10 @@ export const getAllQuizzes = async (req, res) => {
 
 export const getQuizDetails = async (req, res) => {
   try {
-    const quiz = await Quiz.findOne();
+    const { quizId } = req.query;
+    const query = quizId ? { quizId } : {};
+    
+    const quiz = await Quiz.findOne(query);
     
     if (!quiz) {
       return res.status(404).json({
@@ -232,6 +235,7 @@ export const getQuizDetails = async (req, res) => {
       status: quiz.status,
       startTime: quiz.startTime,
       endTime: quiz.endTime,
+      quizId: quiz.quizId,
       createdAt: quiz.createdAt
     };
     
@@ -250,7 +254,10 @@ export const getQuizDetails = async (req, res) => {
 
 export const deleteQuizDetails = async (req, res) => {
   try {
-    const quiz = await Quiz.findOne();
+    const { quizId } = req.query;
+    const query = quizId ? { quizId } : {};
+    
+    const quiz = await Quiz.findOne(query);
     
     if (!quiz) {
       return res.status(404).json({
@@ -272,7 +279,7 @@ export const deleteQuizDetails = async (req, res) => {
       data: quiz
     });
   } catch (err) {
-    console.error('Error deleting quiz details:', err);
+    console.error('Error resetting quiz details:', err);
     res.status(500).json({
       success: false,
       message: 'Server error'
