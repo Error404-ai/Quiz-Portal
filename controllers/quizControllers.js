@@ -1,4 +1,3 @@
-
 import Quiz from '../models/quiz.js';
 import Result from '../models/result.js';
 
@@ -59,7 +58,10 @@ export const submitQuizAnswers = async (req, res) => {
       });
     }
     
-    const existingResult = await Result.findOne({ user: userId });
+    const existingResult = await Result.findOne({ 
+      user: userId,
+      quiz: quiz._id  // Make sure we're checking for results for this specific quiz
+    });
     
     if (existingResult) {
       return res.status(400).json({
@@ -91,6 +93,7 @@ export const submitQuizAnswers = async (req, res) => {
     
     const result = await Result.create({
       user: userId,
+      quiz: quiz._id,  // Add the quiz ID reference
       answers: processedAnswers,
       score
     });

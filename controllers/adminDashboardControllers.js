@@ -215,18 +215,40 @@ export const getAllQuizzes = async (req, res) => {
 export const getQuizDetails = async (req, res) => {
   try {
     const { quizId } = req.query;
-    const query = quizId ? { quizId } : {};
     
-    const quiz = await Quiz.findOne(query);
-    
-    if (!quiz) {
-      return res.status(404).json({
-        success: false,
-        message: 'Quiz not found'
+    // If quizId is provided, return details for that specific quiz
+    if (quizId) {
+      const quiz = await Quiz.findOne({ quizId });
+      
+      if (!quiz) {
+        return res.status(404).json({
+          success: false,
+          message: 'Quiz not found'
+        });
+      }
+      
+      const quizDetails = {
+        _id: quiz._id,
+        title: quiz.title,
+        description: quiz.description || "",
+        timeLimit: quiz.timeLimit || 0,
+        difficulty: quiz.difficulty || "medium",
+        status: quiz.status,
+        startTime: quiz.startTime,
+        endTime: quiz.endTime,
+        quizId: quiz.quizId,
+        createdAt: quiz.createdAt
+      };
+      
+      return res.status(200).json({
+        success: true,
+        data: quizDetails
       });
     }
     
-    const quizDetails = {
+    const quizzes = await Quiz.find();
+    
+    const allQuizDetails = quizzes.map(quiz => ({
       _id: quiz._id,
       title: quiz.title,
       description: quiz.description || "",
@@ -236,12 +258,14 @@ export const getQuizDetails = async (req, res) => {
       startTime: quiz.startTime,
       endTime: quiz.endTime,
       quizId: quiz.quizId,
-      createdAt: quiz.createdAt
-    };
+      createdAt: quiz.createdAt,
+      questionCount: quiz.questions ? quiz.questions.length : 0
+    }));
     
     res.status(200).json({
       success: true,
-      data: quizDetails
+      count: allQuizDetails.length,
+      data: allQuizDetails
     });
   } catch (err) {
     console.error(err);
@@ -255,9 +279,15 @@ export const getQuizDetails = async (req, res) => {
 export const deleteQuizDetails = async (req, res) => {
   try {
     const { quizId } = req.query;
-    const query = quizId ? { quizId } : {};
     
-    const quiz = await Quiz.findOne(query);
+    if (!quizId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz ID is required'
+      });
+    }
+    
+    const quiz = await Quiz.findOne({ quizId });
     
     if (!quiz) {
       return res.status(404).json({
@@ -266,20 +296,34 @@ export const deleteQuizDetails = async (req, res) => {
       });
     }
     
-    quiz.title = "Main Quiz"; 
-    quiz.description = ""; 
-    quiz.timeLimit = 0; 
-    quiz.difficulty = "medium"; 
+    // Check if there are any results associated with this quiz
+    const resultsCount = await Result.countDocuments({ quiz: quiz._id });
     
-    await quiz.save();
+    if (resultsCount > 0) {
+      // If results exist, just reset the quiz to default values instead of deleting
+      quiz.title = "Main Quiz"; 
+      quiz.description = ""; 
+      quiz.timeLimit = 0; 
+      quiz.difficulty = "medium"; 
+      
+      await quiz.save();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Quiz has submissions. Details reset to default values instead of deleting.',
+        data: quiz
+      });
+    }
+    
+    // If no results exist, safe to delete the quiz
+    await Quiz.deleteOne({ quizId });
     
     res.status(200).json({
       success: true,
-      message: 'Quiz details reset to default values',
-      data: quiz
+      message: 'Quiz deleted successfully'
     });
   } catch (err) {
-    console.error('Error resetting quiz details:', err);
+    console.error('Error deleting quiz:', err);
     res.status(500).json({
       success: false,
       message: 'Server error'
