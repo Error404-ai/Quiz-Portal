@@ -1,3 +1,5 @@
+import mongoose from 'mongoose';
+
 const QuizSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -40,3 +42,4 @@ const QuizSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+export default mongoose.model('Quiz', QuizSchema);
