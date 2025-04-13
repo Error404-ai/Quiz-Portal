@@ -22,7 +22,7 @@ export const getRegisteredTeams = async (req, res) => {
 
 export const updateQuizQuestions = async (req, res) => {
   try {
-    const { questions } = req.body;
+    const { questions, quizId } = req.body;
     
     if (!questions || !Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({
@@ -31,6 +31,7 @@ export const updateQuizQuestions = async (req, res) => {
       });
     }
     
+
     for (const question of questions) {
       if (!question.questionText || !question.options || !Array.isArray(question.options) || 
           question.options.length < 2 || 
@@ -44,10 +45,9 @@ export const updateQuizQuestions = async (req, res) => {
       }
     }
 
-    const quizId = req.body.quizId || `quiz_${Date.now()}`;
+    const uniqueQuizId = quizId || `quiz_${Date.now()}`;
     
-
-    let quiz = await Quiz.findOne({ quizId });
+    let quiz = await Quiz.findOne({ quizId: uniqueQuizId });
     
     if (quiz) {
       quiz.questions = questions;
@@ -59,11 +59,11 @@ export const updateQuizQuestions = async (req, res) => {
         data: quiz
       });
     }
-    
+   
     quiz = await Quiz.create({
       title: req.body.title || "Main Quiz",
       questions,
-      quizId
+      quizId: uniqueQuizId
     });
     
     res.status(201).json({
@@ -79,7 +79,6 @@ export const updateQuizQuestions = async (req, res) => {
     });
   }
 };
-
 export const updateQuizDetailsAdmin = async (req, res) => {
   try {
     const { title, description, timeLimit, difficulty, quizId } = req.body;
@@ -212,7 +211,7 @@ export const getAllQuizzes = async (req, res) => {
   }
 };
 
-export const getQuizDetails = async (req, res) => {
+export const Details = async (req, res) => {
   try {
     const quiz = await Quiz.findOne();
     
@@ -283,9 +282,15 @@ export const deleteQuizDetails = async (req, res) => {
 export const getQuiz = async (req, res) => {
   try {
     const { quizId } = req.query;
-    const query = quizId ? { quizId } : {};
     
-    const quiz = await Quiz.findOne(query);
+    if (!quizId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz ID is required'
+      });
+    }
+    
+    const quiz = await Quiz.findOne({ quizId });
     
     if (!quiz) {
       return res.status(404).json({
@@ -306,7 +311,6 @@ export const getQuiz = async (req, res) => {
     });
   }
 };
-
 export const getQuizResults = async (req, res) => {
   try {
     const { quizId } = req.query;
