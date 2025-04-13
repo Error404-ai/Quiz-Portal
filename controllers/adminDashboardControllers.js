@@ -127,6 +127,12 @@ export const updateQuizDetailsAdmin = async (req, res) => {
       if (timeLimit !== undefined) quiz.timeLimit = parseInt(timeLimit);
       if (difficulty) quiz.difficulty = difficulty;
       
+      // Set a quizId if it doesn't exist
+      if (!quiz.quizId) {
+        // Use the existing _id as the quizId to ensure uniqueness
+        quiz.quizId = quiz._id.toString();
+      }
+      
       await quiz.save();
       
       return res.status(200).json({
@@ -135,15 +141,14 @@ export const updateQuizDetailsAdmin = async (req, res) => {
         data: quiz
       });
     } else {
-      // Generate a unique ID if _id is not provided
       const uniqueId = new mongoose.Types.ObjectId();
       
       quiz = await Quiz.create({
-        _id: uniqueId, // Ensure a unique _id is set
         title,
         description: description || '',
         timeLimit: timeLimit !== undefined ? parseInt(timeLimit) : 0,
-        difficulty: difficulty || 'medium'
+        difficulty: difficulty || 'medium',
+        quizId: uniqueId.toString() // Add a unique quizId
       });
       
       return res.status(201).json({

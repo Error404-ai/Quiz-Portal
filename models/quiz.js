@@ -20,6 +20,11 @@ const QuestionSchema = new mongoose.Schema({
 });
 
 const QuizSchema = new mongoose.Schema({
+  quizId: {
+    type: String,
+    unique: true,
+    sparse: true 
+  },
   title: {
     type: String,
     default: "Main Quiz",
