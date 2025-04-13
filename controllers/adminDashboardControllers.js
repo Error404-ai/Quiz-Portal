@@ -134,7 +134,11 @@ export const updateQuizDetailsAdmin = async (req, res) => {
         data: quiz
       });
     } else {
+      // Generate a unique ID if _id is not provided
+      const uniqueId = new mongoose.Types.ObjectId();
+      
       quiz = await Quiz.create({
+        _id: uniqueId, // Ensure a unique _id is set
         title,
         description: description || '',
         timeLimit: timeLimit !== undefined ? parseInt(timeLimit) : 0,
@@ -156,7 +160,6 @@ export const updateQuizDetailsAdmin = async (req, res) => {
     });
   }
 };
-
 export const updateQuizStatus = async (req, res) => {
   try {
     const { status, _id } = req.body;

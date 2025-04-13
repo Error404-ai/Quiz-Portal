@@ -3,7 +3,7 @@ import { protectAdmin } from '../middleware/adminAuth.js';
 import { 
   getRegisteredTeams, 
   getAllQuizzes, 
-  Questions, // Changed from updateQuizQuestions to Questions
+  Questions, 
   getQuizResults, 
   updateQuizStatus,
   getQuiz,
