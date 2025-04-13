@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Quiz from '../models/quiz.js';
 import Result from '../models/result.js';
