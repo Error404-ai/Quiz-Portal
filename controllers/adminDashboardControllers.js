@@ -24,6 +24,13 @@ export const updateQuizQuestions = async (req, res) => {
   try {
     const { questions, quizId } = req.body;
     
+    if (!quizId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz ID is required'
+      });
+    }
+    
     if (!questions || !Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({
         success: false,
@@ -31,7 +38,7 @@ export const updateQuizQuestions = async (req, res) => {
       });
     }
     
-
+    // Validate question format
     for (const question of questions) {
       if (!question.questionText || !question.options || !Array.isArray(question.options) || 
           question.options.length < 2 || 
@@ -44,13 +51,13 @@ export const updateQuizQuestions = async (req, res) => {
         });
       }
     }
-
-    const uniqueQuizId = quizId || `quiz_${Date.now()}`;
     
-    let quiz = await Quiz.findOne({ quizId: uniqueQuizId });
+    // Find the quiz by quizId
+    let quiz = await Quiz.findOne({ quizId });
     
     if (quiz) {
-      quiz.questions = questions;
+      // Add new questions to the existing questions array
+      quiz.questions = [...quiz.questions, ...questions];
       await quiz.save();
       
       return res.status(200).json({
@@ -60,10 +67,11 @@ export const updateQuizQuestions = async (req, res) => {
       });
     }
    
+    // If quiz doesn't exist, create a new one
     quiz = await Quiz.create({
-      title: req.body.title || "Main Quiz",
+      title: req.body.title || "New Quiz",
       questions,
-      quizId: uniqueQuizId
+      quizId
     });
     
     res.status(201).json({
