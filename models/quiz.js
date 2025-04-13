@@ -31,7 +31,7 @@ const QuizSchema = new mongoose.Schema({
   },
   timeLimit: {
     type: Number,
-    default: 0 // in minutes, 0 means no time limit
+    default: 0
   },
   difficulty: {
     type: String,
@@ -49,11 +49,6 @@ const QuizSchema = new mongoose.Schema({
   },
   endTime: {
     type: Date
-  },
-  quizId: {
-    type: String,
-    required: true,
-    unique: true
   },
   createdAt: {
     type: Date,

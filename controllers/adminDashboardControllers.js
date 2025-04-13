@@ -22,9 +22,9 @@ export const getRegisteredTeams = async (req, res) => {
 
 export const updateQuizQuestions = async (req, res) => {
   try {
-    const { questions, quizId } = req.body;
+    const { questions, _id } = req.body;
     
-    if (!quizId) {
+    if (!_id) {
       return res.status(400).json({
         success: false,
         message: 'Quiz ID is required'
@@ -38,7 +38,6 @@ export const updateQuizQuestions = async (req, res) => {
       });
     }
     
-    // Validate question format
     for (const question of questions) {
       if (!question.questionText || !question.options || !Array.isArray(question.options) || 
           question.options.length < 2 || 
@@ -52,11 +51,9 @@ export const updateQuizQuestions = async (req, res) => {
       }
     }
     
-    // Find the quiz by quizId
-    let quiz = await Quiz.findOne({ quizId });
+    let quiz = await Quiz.findById(_id);
     
     if (quiz) {
-      // Add new questions to the existing questions array
       quiz.questions = [...quiz.questions, ...questions];
       await quiz.save();
       
@@ -67,11 +64,10 @@ export const updateQuizQuestions = async (req, res) => {
       });
     }
    
-    // If quiz doesn't exist, create a new one
     quiz = await Quiz.create({
       title: req.body.title || "New Quiz",
       questions,
-      quizId
+      _id
     });
     
     res.status(201).json({
@@ -87,11 +83,11 @@ export const updateQuizQuestions = async (req, res) => {
     });
   }
 };
+
 export const updateQuizDetailsAdmin = async (req, res) => {
   try {
-    const { title, description, timeLimit, difficulty, quizId } = req.body;
+    const { title, description, timeLimit, difficulty, _id } = req.body;
     
-    // Validate input
     if (!title) {
       return res.status(400).json({
         success: false,
@@ -113,9 +109,11 @@ export const updateQuizDetailsAdmin = async (req, res) => {
       });
     }
     
-    const uniqueQuizId = quizId || `quiz_${Date.now()}`;
+    let quiz;
     
-    let quiz = await Quiz.findOne({ quizId: uniqueQuizId });
+    if (_id) {
+      quiz = await Quiz.findById(_id);
+    }
     
     if (quiz) {
       if (title) quiz.title = title;
@@ -136,8 +134,7 @@ export const updateQuizDetailsAdmin = async (req, res) => {
       title,
       description: description || '',
       timeLimit: timeLimit || 0,
-      difficulty: difficulty || 'medium',
-      quizId: uniqueQuizId
+      difficulty: difficulty || 'medium'
     });
     
     res.status(201).json({
@@ -156,7 +153,7 @@ export const updateQuizDetailsAdmin = async (req, res) => {
 
 export const updateQuizStatus = async (req, res) => {
   try {
-    const { status, quizId } = req.body;
+    const { status, _id } = req.body;
     
     if (!['pending', 'active', 'completed'].includes(status)) {
       return res.status(400).json({
@@ -165,8 +162,13 @@ export const updateQuizStatus = async (req, res) => {
       });
     }
     
-    const query = quizId ? { quizId } : {};
-    let quiz = await Quiz.findOne(query);
+    let quiz;
+    
+    if (_id) {
+      quiz = await Quiz.findById(_id);
+    } else {
+      quiz = await Quiz.findOne();
+    }
     
     if (!quiz) {
       return res.status(404).json({
@@ -203,7 +205,7 @@ export const updateQuizStatus = async (req, res) => {
 
 export const getAllQuizzes = async (req, res) => {
   try {
-    const quizzes = await Quiz.find().select('title status quizId createdAt');
+    const quizzes = await Quiz.find().select('_id title description timeLimit difficulty status createdAt');
     
     res.status(200).json({
       success: true,
@@ -219,7 +221,7 @@ export const getAllQuizzes = async (req, res) => {
   }
 };
 
-export const Details = async (req, res) => {
+export const getQuizDetails = async (req, res) => {
   try {
     const quiz = await Quiz.findOne();
     
@@ -257,29 +259,33 @@ export const Details = async (req, res) => {
 
 export const deleteQuizDetails = async (req, res) => {
   try {
-    const quiz = await Quiz.findOne();
+    const { _id } = req.query;
     
-    if (!quiz) {
+    if (!_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz ID is required'
+      });
+    }
+    
+    const deletedQuiz = await Quiz.findByIdAndDelete(_id);
+    
+    if (!deletedQuiz) {
       return res.status(404).json({
         success: false,
         message: 'Quiz not found'
       });
     }
     
-    quiz.title = "Main Quiz"; 
-    quiz.description = ""; 
-    quiz.timeLimit = 0; 
-    quiz.difficulty = "medium"; 
-    
-    await quiz.save();
+    await Result.deleteMany({ quiz: deletedQuiz._id });
     
     res.status(200).json({
       success: true,
-      message: 'Quiz details reset to default values',
-      data: quiz
+      message: 'Quiz and related results deleted successfully',
+      data: { _id }
     });
   } catch (err) {
-    console.error('Error deleting quiz details:', err);
+    console.error('Error deleting quiz:', err);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -289,16 +295,16 @@ export const deleteQuizDetails = async (req, res) => {
 
 export const getQuiz = async (req, res) => {
   try {
-    const { quizId } = req.query;
+    const { _id } = req.query;
     
-    if (!quizId) {
+    if (!_id) {
       return res.status(400).json({
         success: false,
         message: 'Quiz ID is required'
       });
     }
     
-    const quiz = await Quiz.findOne({ quizId });
+    const quiz = await Quiz.findById(_id);
     
     if (!quiz) {
       return res.status(404).json({
@@ -319,10 +325,18 @@ export const getQuiz = async (req, res) => {
     });
   }
 };
+
 export const getQuizResults = async (req, res) => {
   try {
-    const { quizId } = req.query;
-    const query = quizId ? { quizId } : {};
+    const { _id } = req.query;
+    let query = {};
+    
+    if (_id) {
+      const quiz = await Quiz.findById(_id);
+      if (quiz) {
+        query.quiz = quiz._id;
+      }
+    }
     
     const results = await Result.find(query)
       .populate('userId', 'teamName email')

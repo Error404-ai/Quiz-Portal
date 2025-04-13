@@ -15,7 +15,6 @@ export const getActiveQuiz = async (req, res) => {
     const quizForStudent = {
       _id: quiz._id,
       title: quiz.title,
-      quizId: quiz.quizId,
       questions: quiz.questions.map(q => ({
         _id: q._id,
         questionText: q.questionText,
@@ -41,10 +40,10 @@ export const getActiveQuiz = async (req, res) => {
 
 export const submitQuizAnswers = async (req, res) => {
   try {
-    const { answers, quizId } = req.body;
+    const { answers, _id } = req.body;
     const userId = req.user.id;
     
-    if (!quizId) {
+    if (!_id) {
       return res.status(400).json({
         success: false,
         message: 'Quiz ID is required'
@@ -58,7 +57,7 @@ export const submitQuizAnswers = async (req, res) => {
       });
     }
     
-    const quiz = await Quiz.findOne({ quizId });
+    const quiz = await Quiz.findById(_id);
     
     if (!quiz) {
       return res.status(404).json({
@@ -134,16 +133,16 @@ export const submitQuizAnswers = async (req, res) => {
 export const getUserResult = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { quizId } = req.query;
+    const { _id } = req.query;
     
-    if (!quizId) {
+    if (!_id) {
       return res.status(400).json({
         success: false,
         message: 'Quiz ID is required'
       });
     }
     
-    const quiz = await Quiz.findOne({ quizId });
+    const quiz = await Quiz.findById(_id);
     
     if (!quiz) {
       return res.status(404).json({
@@ -179,16 +178,16 @@ export const getUserResult = async (req, res) => {
 
 export const updateQuizDetails = async (req, res) => {
   try {
-    const { title, description, timeLimit, difficulty, quizId } = req.body;
+    const { title, description, timeLimit, difficulty, _id } = req.body;
     
-    if (!quizId) {
+    if (!_id) {
       return res.status(400).json({
         success: false,
         message: 'Quiz ID is required'
       });
     }
     
-    let quiz = await Quiz.findOne({ quizId });
+    let quiz = await Quiz.findById(_id);
     
     if (quiz) {
       if (title) quiz.title = title;
