@@ -79,14 +79,7 @@ export const updateQuizQuestions = async (req, res) => {
 
 export const updateQuizDetailsAdmin = async (req, res) => {
   try {
-    const { title, description, timeLimit, difficulty, quizId } = req.body;
-    
-    if (!quizId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Quiz ID is required'
-      });
-    }
+    const { title, description, timeLimit, difficulty} = req.body;
     
     if (!title) {
       return res.status(400).json({
