@@ -370,3 +370,151 @@ export const getQuizResults = async (req, res) => {
     });
   }
 };
+
+//delete questions
+export const deleteQuizQuestion = async (req, res) => {
+  try {
+    const { quizId, questionId } = req.params;
+    
+    if (!quizId || !questionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz ID and Question ID are required'
+      });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Quiz ID format'
+      });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(questionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Question ID format'
+      });
+    }
+    
+    const quiz = await Quiz.findById(quizId);
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+    const questionToDelete = quiz.questions.id(questionId);
+    
+    if (!questionToDelete) {
+      return res.status(404).json({
+        success: false,
+        message: 'Question not found in this quiz'
+      });
+    }
+    
+    questionToDelete.deleteOne();
+
+    await quiz.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Question deleted successfully',
+      data: {
+        quizId,
+        questionId,
+        remainingQuestionsCount: quiz.questions.length
+      }
+    });
+  } catch (err) {
+    console.error('Error deleting question:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+//edit the question
+export const editQuizQuestion = async (req, res) => {
+  try {
+    const { quizId, questionId } = req.params;
+    const { questionText, options, correctOption, points } = req.body;
+    
+    if (!quizId || !questionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz ID and Question ID are required'
+      });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Quiz ID format'
+      });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(questionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Question ID format'
+      });
+    }
+    
+    if (!questionText || !options || !Array.isArray(options) || options.length < 2 || 
+        typeof correctOption !== 'number' || correctOption < 0 || correctOption >= options.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid question format. Please provide questionText, at least 2 options, and a valid correctOption.'
+      });
+    }
+    
+    const quiz = await Quiz.findById(quizId);
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+    
+    const questionToEdit = quiz.questions.id(questionId);
+    
+    if (!questionToEdit) {
+      return res.status(404).json({
+        success: false,
+        message: 'Question not found in this quiz'
+      });
+    }
+    
+    questionToEdit.questionText = questionText;
+    questionToEdit.options = options;
+    questionToEdit.correctOption = correctOption;
+    
+    if (points !== undefined) {
+      questionToEdit.points = points;
+    }
+    
+    await quiz.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Question updated successfully',
+      data: {
+        quizId,
+        questionId,
+        updatedQuestion: questionToEdit
+      }
+    });
+  } catch (err) {
+    console.error('Error editing question:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};

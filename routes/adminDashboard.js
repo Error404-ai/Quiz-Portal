@@ -25,5 +25,7 @@ router.get('/results', getQuizResults);
 router.patch('/quiz/status', updateQuizStatus);
 router.put('/quiz/details', updateQuizDetailsAdmin);
 router.delete('/quiz/details', deleteQuizDetails); 
+router.delete('/quiz/:quizId/question/:questionId', deleteQuizQuestion);
+router.put('/quiz/:quizId/question/:questionId', editQuizQuestion);
 
 export default router;
