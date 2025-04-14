@@ -5,7 +5,8 @@ import {
   getAvailableQuizzes,
   submitQuizAnswers, 
   getUserResult,
-  updateQuizDetails 
+  updateQuizDetails,
+  getQuizQuestion
 } from '../controllers/quizControllers.js';
 
 const router = express.Router();
@@ -17,5 +18,6 @@ router.get('/active', getActiveQuiz);
 router.post('/submit', submitQuizAnswers);
 router.get('/result', getUserResult);
 router.put('/details', updateQuizDetails);
+router.get('/question', getQuizQuestion);
 
 export default router;

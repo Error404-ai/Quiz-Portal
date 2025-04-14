@@ -40,6 +40,8 @@ export const getActiveQuiz = async (req, res) => {
 
 export const getAvailableQuizzes = async (req, res) => {
   try {
+
+    console.log(`Total quizzes in DB: ${await Quiz.countDocuments()}`);
     const quizzes = await Quiz.find({})
       .select('_id title description timeLimit difficulty status startTime')
       .sort('-createdAt');
@@ -240,6 +242,70 @@ export const updateQuizDetails = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
+export const getQuizQuestion = async (req, res) => {
+  try {
+    const { quizId, questionIndex } = req.query;
+    
+    if (!quizId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz ID is required'
+      });
+    }
+    
+    const index = parseInt(questionIndex) || 0;
+    
+    const quiz = await Quiz.findById(quizId);
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+    
+    if (!quiz.questions || quiz.questions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No questions found in this quiz'
+      });
+    }
+    if (index < 0 || index >= quiz.questions.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid question index'
+      });
+    }
+    
+    const question = quiz.questions[index];
+    
+    const sanitizedQuestion = {
+      _id: question._id,
+      questionText: question.questionText,
+      options: question.options,
+      points: question.points
+    };
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        quizTitle: quiz.title,
+        quizId: quiz._id,
+        timeLimit: quiz.timeLimit,
+        totalQuestions: quiz.questions.length,
+        currentQuestion: index + 1,
+        questionData: sanitizedQuestion
+      }
+    });
+  } catch (err) {
+    console.error('Error getting quiz question:', err);
     res.status(500).json({
       success: false,
       message: 'Server error'
