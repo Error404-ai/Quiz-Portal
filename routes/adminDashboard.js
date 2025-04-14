@@ -9,7 +9,9 @@ import {
   getQuiz,
   getQuizDetails,
   updateQuizDetailsAdmin,
-  deleteQuizDetails
+  deleteQuizDetails,
+  deleteQuizQuestion,
+  editQuizQuestion
 } from '../controllers/adminDashboardControllers.js';
 
 const router = express.Router();
