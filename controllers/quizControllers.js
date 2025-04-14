@@ -38,6 +38,36 @@ export const getActiveQuiz = async (req, res) => {
   }
 };
 
+export const getAvailableQuizzes = async (req, res) => {
+  try {
+    const quizzes = await Quiz.find({})
+      .select('_id title description timeLimit difficulty status startTime')
+      .sort('-createdAt');
+    
+    const formattedQuizzes = quizzes.map(quiz => ({
+      _id: quiz._id,
+      title: quiz.title,
+      description: quiz.description,
+      timeLimit: quiz.timeLimit,
+      difficulty: quiz.difficulty,
+      status: quiz.status,
+      startTime: quiz.startTime
+    }));
+    
+    res.status(200).json({
+      success: true,
+      count: formattedQuizzes.length,
+      data: formattedQuizzes
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
 export const submitQuizAnswers = async (req, res) => {
   try {
     const { answers, _id } = req.body;
