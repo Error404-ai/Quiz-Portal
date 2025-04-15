@@ -252,9 +252,12 @@ export const updateQuizDetails = async (req, res) => {
 export const getQuizQuestion = async (req, res) => {
   try {
     const { quizId, questionIndex } = req.query;
-    console.log("Request parameters:", { quizId, questionIndex });
+    
+    // Force immediate console output
+    process.stdout.write(`[DEBUG] Request parameters: ${JSON.stringify({ quizId, questionIndex })}\n`);
     
     if (!quizId) {
+      console.error('[ERROR] Quiz ID is required');
       return res.status(400).json({
         success: false,
         message: 'Quiz ID is required'
@@ -262,27 +265,32 @@ export const getQuizQuestion = async (req, res) => {
     }
     
     const index = parseInt(questionIndex) || 0;
-    console.log("Parsed question index:", index);
+    process.stdout.write(`[DEBUG] Parsed question index: ${index}\n`);
     
     const quiz = await Quiz.findById(quizId);
-    console.log("Quiz found:", quiz ? "Yes" : "No");
+    process.stdout.write(`[DEBUG] Quiz found: ${quiz ? "Yes" : "No"}\n`);
     
     if (!quiz) {
+      console.error('[ERROR] Quiz not found');
       return res.status(404).json({
         success: false,
         message: 'Quiz not found'
       });
     }
     
-    console.log("Quiz questions available:", quiz.questions ? quiz.questions.length : 0);
+    // Force logs to output
+    process.stdout.write(`[DEBUG] Quiz questions available: ${quiz.questions ? quiz.questions.length : 0}\n`);
     
     if (!quiz.questions || quiz.questions.length === 0) {
+      console.error('[ERROR] No questions found in this quiz');
       return res.status(404).json({
         success: false,
         message: 'No questions found in this quiz'
       });
     }
+    
     if (index < 0 || index >= quiz.questions.length) {
+      console.error('[ERROR] Invalid question index');
       return res.status(400).json({
         success: false,
         message: 'Invalid question index'
@@ -290,10 +298,10 @@ export const getQuizQuestion = async (req, res) => {
     }
     
     const question = quiz.questions[index];
-    console.log("Question found:", question ? "Yes" : "No");
-    console.log("Question options:", question.options);
-    console.log("Options type:", Array.isArray(question.options) ? "Array" : typeof question.options);
-    console.log("Options length:", question.options ? question.options.length : 0);
+    process.stdout.write(`[DEBUG] Question found: ${question ? "Yes" : "No"}\n`);
+    process.stdout.write(`[DEBUG] Question options: ${JSON.stringify(question.options)}\n`);
+    process.stdout.write(`[DEBUG] Options type: ${Array.isArray(question.options) ? "Array" : typeof question.options}\n`);
+    process.stdout.write(`[DEBUG] Options length: ${question.options ? question.options.length : 0}\n`);
     
     const sanitizedQuestion = {
       _id: question._id,
@@ -302,10 +310,10 @@ export const getQuizQuestion = async (req, res) => {
       points: question.points
     };
     
-    console.log("Sanitized question:", sanitizedQuestion);
-    console.log("Sanitized options:", sanitizedQuestion.options);
+    process.stdout.write(`[DEBUG] Sanitized question: ${JSON.stringify(sanitizedQuestion)}\n`);
+    process.stdout.write(`[DEBUG] Sanitized options: ${JSON.stringify(sanitizedQuestion.options)}\n`);
     
-    res.status(200).json({
+    const responseData = {
       success: true,
       data: {
         quizTitle: quiz.title,
@@ -315,9 +323,14 @@ export const getQuizQuestion = async (req, res) => {
         currentQuestion: index + 1,
         questionData: sanitizedQuestion
       }
-    });
+    };
+    
+    process.stdout.write(`[DEBUG] Sending response: ${JSON.stringify(responseData, null, 2)}\n`);
+    
+    res.status(200).json(responseData);
   } catch (err) {
-    console.error('Error getting quiz question:', err);
+    console.error('[ERROR] Error getting quiz question:', err);
+    process.stdout.write(`[ERROR] Stack trace: ${err.stack}\n`);
     res.status(500).json({
       success: false,
       message: 'Server error'
