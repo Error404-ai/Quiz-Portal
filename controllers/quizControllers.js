@@ -249,12 +249,10 @@ export const updateQuizDetails = async (req, res) => {
   }
 };
 
-import { logger } from '../logger.js';
 export const getQuizQuestion = async (req, res) => {
   try {
     const { quizId, questionIndex } = req.query;
     
-    logger.debug(`Request parameters: ${JSON.stringify({ quizId, questionIndex })}`);
     
     if (!quizId) {
       console.error('[ERROR] Quiz ID is required');
@@ -317,8 +315,6 @@ export const getQuizQuestion = async (req, res) => {
     res.status(200).json(responseData);
   } catch (err) {
     console.error('[ERROR] Error getting quiz question:', err);
-    logger.error(`Error getting quiz question: ${err.message}`);
-    logger.error(`Stack trace: ${err.stack}`);
     res.status(500).json({
       success: false,
       message: 'Server error'
