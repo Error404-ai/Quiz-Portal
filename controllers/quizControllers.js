@@ -252,6 +252,7 @@ export const updateQuizDetails = async (req, res) => {
 export const getQuizQuestion = async (req, res) => {
   try {
     const { quizId, questionIndex } = req.query;
+    console.log("Request parameters:", { quizId, questionIndex });
     
     if (!quizId) {
       return res.status(400).json({
@@ -261,8 +262,10 @@ export const getQuizQuestion = async (req, res) => {
     }
     
     const index = parseInt(questionIndex) || 0;
+    console.log("Parsed question index:", index);
     
     const quiz = await Quiz.findById(quizId);
+    console.log("Quiz found:", quiz ? "Yes" : "No");
     
     if (!quiz) {
       return res.status(404).json({
@@ -270,6 +273,8 @@ export const getQuizQuestion = async (req, res) => {
         message: 'Quiz not found'
       });
     }
+    
+    console.log("Quiz questions available:", quiz.questions ? quiz.questions.length : 0);
     
     if (!quiz.questions || quiz.questions.length === 0) {
       return res.status(404).json({
@@ -285,6 +290,10 @@ export const getQuizQuestion = async (req, res) => {
     }
     
     const question = quiz.questions[index];
+    console.log("Question found:", question ? "Yes" : "No");
+    console.log("Question options:", question.options);
+    console.log("Options type:", Array.isArray(question.options) ? "Array" : typeof question.options);
+    console.log("Options length:", question.options ? question.options.length : 0);
     
     const sanitizedQuestion = {
       _id: question._id,
@@ -292,6 +301,9 @@ export const getQuizQuestion = async (req, res) => {
       options: question.options,
       points: question.points
     };
+    
+    console.log("Sanitized question:", sanitizedQuestion);
+    console.log("Sanitized options:", sanitizedQuestion.options);
     
     res.status(200).json({
       success: true,
