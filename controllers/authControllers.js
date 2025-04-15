@@ -148,16 +148,22 @@ export const signin = async (req, res) => {
 
 export const refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.cookies;
+    // Check multiple possible locations for the refresh token
+    const token = 
+      req.cookies.refreshToken || 
+      (req.body && req.body.refreshToken) || 
+      (req.headers.authorization && req.headers.authorization.startsWith('Bearer') 
+        ? req.headers.authorization.split(' ')[1] 
+        : null);
     
-    if (!refreshToken) {
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: 'No refresh token provided'
       });
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
     const user = await User.findById(decoded.id);
 
     if (!user) {
