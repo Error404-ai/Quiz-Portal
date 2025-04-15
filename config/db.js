@@ -13,3 +13,27 @@ export const connectDB = async () => {
     process.exit(1);
   }
 };
+
+const updateAllQuizzes = async () => {
+  try {
+    const conn = await connectDB();
+        const result = await Quiz.updateMany(
+      {}, 
+      { $set: { status: 'active' } }
+    );
+    
+    console.log(`✅ Updated ${result.modifiedCount} quizzes to 'active' status`);
+    
+    const quizzes = await Quiz.find().select('title status');
+    console.log('Current quizzes:');
+    quizzes.forEach(quiz => {
+      console.log(`- ${quiz.title}: ${quiz.status}`);
+    });
+    
+    await mongoose.connection.close();
+    console.log('Database connection closed');
+  } catch (err) {
+    console.error(`Error updating quizzes: ${err.message}`);
+  }
+};
+updateAllQuizzes();
