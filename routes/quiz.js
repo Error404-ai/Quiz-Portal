@@ -6,7 +6,8 @@ import {
   submitQuizAnswers, 
   getUserResult,
   updateQuizDetails,
-  getQuizQuestion
+  getQuizQuestion,
+  markQuestionAttempted
 } from '../controllers/quizControllers.js';
 
 const router = express.Router();
@@ -19,5 +20,6 @@ router.post('/submit', submitQuizAnswers);
 router.get('/result', getUserResult);
 router.put('/details', updateQuizDetails);
 router.get('/question', getQuizQuestion);
+router.post('/question/attempt', markQuestionAttempted);
 
 export default router;

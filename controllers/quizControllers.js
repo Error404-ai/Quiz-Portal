@@ -12,6 +12,18 @@ export const getActiveQuiz = async (req, res) => {
       });
     }
     
+    const userId = req.user.id;
+    
+    let userAttemptedQuestions = [];
+    const existingResult = await Result.findOne({
+      user: userId,
+      quiz: quiz._id
+    });
+    
+    if (existingResult) {
+      userAttemptedQuestions = existingResult.attemptedQuestions || [];
+    }
+    
     const quizForStudent = {
       _id: quiz._id,
       title: quiz.title,
@@ -19,7 +31,8 @@ export const getActiveQuiz = async (req, res) => {
         _id: q._id,
         questionText: q.questionText,
         options: q.options,
-        points: q.points
+        points: q.points,
+        attempted: userAttemptedQuestions.includes(q._id)
       })),
       startTime: quiz.startTime,
       timeLimit: quiz.timeLimit
@@ -40,7 +53,6 @@ export const getActiveQuiz = async (req, res) => {
 
 export const getAvailableQuizzes = async (req, res) => {
   try {
-
     console.log(`Total quizzes in DB: ${await Quiz.countDocuments()}`);
     const quizzes = await Quiz.find({})
       .select('_id title description timeLimit difficulty status startTime')
@@ -105,12 +117,12 @@ export const submitQuizAnswers = async (req, res) => {
       });
     }
     
-    const existingResult = await Result.findOne({ 
+    let existingResult = await Result.findOne({ 
       user: userId,
       quiz: quiz._id
     });
     
-    if (existingResult) {
+    if (existingResult && existingResult.answers.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'You have already submitted the quiz'
@@ -119,6 +131,7 @@ export const submitQuizAnswers = async (req, res) => {
     
     let score = 0;
     const processedAnswers = [];
+    const attemptedQuestionIds = answers.map(answer => answer.questionId);
     
     for (const answer of answers) {
       const question = quiz.questions.id(answer.questionId);
@@ -138,10 +151,31 @@ export const submitQuizAnswers = async (req, res) => {
       });
     }
     
+    if (existingResult) {
+      existingResult.answers = processedAnswers;
+      existingResult.score = score;
+      existingResult.attemptedQuestions = Array.from(new Set([
+        ...existingResult.attemptedQuestions,
+        ...attemptedQuestionIds
+      ]));
+      
+      await existingResult.save();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Quiz submitted successfully',
+        data: {
+          score,
+          totalPoints: quiz.questions.reduce((acc, q) => acc + (q.points || 1), 0)
+        }
+      });
+    }
+    
     const result = await Result.create({
       user: userId,
       quiz: quiz._id,
       answers: processedAnswers,
+      attemptedQuestions: attemptedQuestionIds,
       score
     });
     
@@ -252,7 +286,7 @@ export const updateQuizDetails = async (req, res) => {
 export const getQuizQuestion = async (req, res) => {
   try {
     const { quizId, questionIndex } = req.query;
-    
+    const userId = req.user.id;
     
     if (!quizId) {
       console.error('[ERROR] Quiz ID is required');
@@ -265,7 +299,6 @@ export const getQuizQuestion = async (req, res) => {
     const index = parseInt(questionIndex) || 0;
     
     const quiz = await Quiz.findById(quizId);
-
     
     if (!quiz) {
       console.error('[ERROR] Quiz not found');
@@ -293,11 +326,24 @@ export const getQuizQuestion = async (req, res) => {
     
     const question = quiz.questions[index];
     
+    let attempted = false;
+    const userResult = await Result.findOne({
+      user: userId,
+      quiz: quiz._id
+    });
+    
+    if (userResult && userResult.attemptedQuestions) {
+      attempted = userResult.attemptedQuestions.some(
+        q => q.toString() === question._id.toString()
+      );
+    }
+    
     const sanitizedQuestion = {
       _id: question._id,
       questionText: question.questionText,
       options: question.options,
-      points: question.points
+      points: question.points,
+      attempted: attempted
     };
     
     const responseData = {
@@ -315,6 +361,78 @@ export const getQuizQuestion = async (req, res) => {
     res.status(200).json(responseData);
   } catch (err) {
     console.error('[ERROR] Error getting quiz question:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
+export const markQuestionAttempted = async (req, res) => {
+  try {
+    const { quizId, questionId } = req.body;
+    const userId = req.user.id;
+    
+    if (!quizId || !questionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz ID and Question ID are required'
+      });
+    }
+    
+    const quiz = await Quiz.findById(quizId);
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+    
+    const question = quiz.questions.id(questionId);
+    
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        message: 'Question not found'
+      });
+    }
+    
+    let result = await Result.findOne({
+      user: userId,
+      quiz: quizId
+    });
+    
+    if (!result) {
+      result = new Result({
+        user: userId,
+        quiz: quizId,
+        answers: [],
+        attemptedQuestions: [questionId]
+      });
+    } else {
+      if (!result.attemptedQuestions) {
+        result.attemptedQuestions = [];
+      }
+      
+      if (!result.attemptedQuestions.some(q => q.toString() === questionId.toString())) {
+        result.attemptedQuestions.push(questionId);
+      }
+    }
+    
+    await result.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Question marked as attempted',
+      data: {
+        quizId,
+        questionId,
+        attempted: true
+      }
+    });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({
       success: false,
       message: 'Server error'

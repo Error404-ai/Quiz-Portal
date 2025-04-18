@@ -25,6 +25,10 @@ const ResultSchema = new mongoose.Schema({
       required: true
     }
   }],
+  attemptedQuestions: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Quiz.questions'
+  }],
   score: {
     type: Number,
     default: 0
