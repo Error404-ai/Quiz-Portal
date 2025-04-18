@@ -177,6 +177,7 @@ export const logout = (req, res) => {
 
 export const refreshToken = async (req, res) => {
   try {
+    // Get token from cookie, body or header
     const token = 
       req.cookies.refreshToken || 
       (req.body && req.body.refreshToken) || 
@@ -195,9 +196,46 @@ export const refreshToken = async (req, res) => {
     const refreshSecret = process.env.JWT_REFRESH_SECRET || "refreshsecretkey";
 
     try {
+      // Verify the token
       const decoded = jwt.verify(token, refreshSecret);
-      const user = await User.findById(decoded.id);
+      
+      // Check if it's a user token (has id) or admin token (has adminId)
+      const userId = decoded.id || decoded.adminId;
+      
+      if (!userId) {
+        console.log("Invalid token structure: no id found");
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid refresh token format'
+        });
+      }
 
+      // Check if it's an admin token
+      if (decoded.adminId) {
+        const admin = await Admin.findById(decoded.adminId);
+        if (!admin) {
+          console.log("Admin not found for token");
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid refresh token'
+          });
+        }
+
+        // Generate new admin access token
+        const accessToken = jwt.sign(
+          { adminId: admin._id, email: admin.email },
+          process.env.JWT_SECRET || "secretkey",
+          { expiresIn: "15m" }
+        );
+
+        return res.status(200).json({
+          success: true,
+          accessToken
+        });
+      }
+
+      // Handle user token
+      const user = await User.findById(userId);
       if (!user) {
         console.log("User not found for token");
         return res.status(401).json({
@@ -206,7 +244,12 @@ export const refreshToken = async (req, res) => {
         });
       }
 
-      const accessToken = generateAccessToken(user._id);
+      // Generate new user access token
+      const accessToken = jwt.sign(
+        { id: user._id },
+        process.env.JWT_ACCESS_SECRET || "accesssecretkey",
+        { expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m' }
+      );
 
       res.status(200).json({
         success: true,
@@ -225,6 +268,6 @@ export const refreshToken = async (req, res) => {
     return res.status(401).json({
       success: false,
       message: 'Invalid refresh token'
-});
-}
+    });
+  }
 };
