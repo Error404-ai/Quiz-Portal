@@ -1,5 +1,8 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
+import Admin from '../models/Admin.js';
+
+
 
 const generateAccessToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_ACCESS_SECRET, {
