@@ -8,80 +8,61 @@ const generateAccessToken = (id) => {
 };
 
 const generateRefreshToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
+  return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET || 'refreshsecretkey', {
     expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
   });
 };
 
-export const signup = async (req, res) => {
+export const refreshToken = async (req, res) => {
   try {
-    const { teamName, teamLeaderName, email, studentId, password, confirmPassword } = req.body;
-
-    if (!teamName || !teamLeaderName || !email || !studentId || !password) {
-      return res.status(400).json({
+    const token = 
+      req.cookies.refreshToken || 
+      (req.body && req.body.refreshToken) || 
+      (req.headers.authorization && req.headers.authorization.startsWith('Bearer') 
+        ? req.headers.authorization.split(' ')[1] 
+        : null);
+    
+    if (!token) {
+      console.log("No refresh token found");
+      return res.status(401).json({
         success: false,
-        message: 'Please provide all required fields'
+        message: 'No refresh token provided'
       });
     }
 
-    if (password !== confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Passwords do not match'
-      });
-    }
+    const refreshSecret = process.env.JWT_REFRESH_SECRET || "refreshsecretkey";
 
-    const existingUserEmail = await User.findOne({ email });
-    if (existingUserEmail) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email already registered'
-      });
-    }
+    try {
+      const decoded = jwt.verify(token, refreshSecret);
+      const user = await User.findById(decoded.id);
 
-    const existingUserStudentId = await User.findOne({ studentId });
-    if (existingUserStudentId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Student ID already registered'
-      });
-    }
+      if (!user) {
+        console.log("User not found for token");
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid refresh token'
+        });
+      }
 
-    const user = await User.create({
-      teamName,
-      teamLeaderName,
-      email,
-      studentId,
-      password
-    });
+      const accessToken = generateAccessToken(user._id);
 
-    const accessToken = generateAccessToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
-
-    const cookieOptions = {
-      expires: new Date(
-        Date.now() + (process.env.JWT_REFRESH_COOKIE_EXPIRE || 7) * 24 * 60 * 60 * 1000
-      ),
-      httpOnly: true
-    };
-
-    if (process.env.NODE_ENV === 'production') {
-      cookieOptions.secure = true;
-    }
-
-    res
-      .status(201)
-      .cookie('refreshToken', refreshToken, cookieOptions)
-      .json({
+      res.status(200).json({
         success: true,
-        accessToken,
-        refreshToken
+        accessToken
       });
+    } catch (verifyError) {
+      console.log("Token verification error:", verifyError.message);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid refresh token'
+      });
+    }
+    
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
+    console.error("Refresh token error:", err);
+    return res.status(401).json({
       success: false,
-      message: 'Server error'
+      message: 'Invalid refresh token'
     });
   }
 };
@@ -142,48 +123,6 @@ export const signin = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error'
-    });
-  }
-};
-
-export const refreshToken = async (req, res) => {
-  try {
-    // Check multiple possible locations for the refresh token
-    const token = 
-      req.cookies.refreshToken || 
-      (req.body && req.body.refreshToken) || 
-      (req.headers.authorization && req.headers.authorization.startsWith('Bearer') 
-        ? req.headers.authorization.split(' ')[1] 
-        : null);
-    
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'No refresh token provided'
-      });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-    const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid refresh token'
-      });
-    }
-
-    const accessToken = generateAccessToken(user._id);
-
-    res.status(200).json({
-      success: true,
-      accessToken
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid refresh token'
     });
   }
 };
