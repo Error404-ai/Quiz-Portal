@@ -341,7 +341,7 @@ export const getQuiz = async (req, res) => {
   }
 };
 
-export const getQuizResults = async (req, res) => {
+export const getQuizResultsWithStats = async (req, res) => {
   try {
     const { _id } = req.query;
     let query = {};
@@ -350,24 +350,74 @@ export const getQuizResults = async (req, res) => {
       const quiz = await Quiz.findById(_id);
       if (quiz) {
         query.quiz = quiz._id;
+      } else {
+        return res.status(404).json({
+          success: false,
+          message: 'Quiz not found'
+        });
       }
     }
     
+    const quizDetails = _id 
+      ? await Quiz.findById(_id) 
+      : { title: "All Quizzes", questions: [] };
+    
+
     const results = await Result.find(query)
       .populate('userId', 'teamName email')
       .sort('-score');
     
-    const resultsWithAttemptedCount = results.map(result => {
-      return {
-        ...result._doc,
-        attemptedCount: result.attemptedQuestions ? result.attemptedQuestions.length : 0
-      };
-    });
+    const totalParticipants = results.length;
+    const totalPossibleScore = quizDetails.questions.reduce((sum, q) => sum + (q.points || 1), 0) || 0;
+    
+    let highestScore = 0;
+    let lowestScore = totalPossibleScore;
+    let totalScore = 0;
+    
+    for (const result of results) {
+      highestScore = Math.max(highestScore, result.score);
+      lowestScore = Math.min(lowestScore, result.score);
+      totalScore += result.score;
+    }
+    
+    const averageScore = totalParticipants > 0 ? (totalScore / totalParticipants).toFixed(2) : 0;
+    
+    let questionStats = [];
+    
+    if (_id && quizDetails.questions && quizDetails.questions.length > 0) {
+      questionStats = quizDetails.questions.map(question => {
+        const questionId = question._id;
+        const answersForQuestion = results.flatMap(r => 
+          r.answers.filter(a => a.questionId.toString() === questionId.toString())
+        );
+        
+        const totalAnswers = answersForQuestion.length;
+        const correctAnswers = answersForQuestion.filter(a => a.isCorrect).length;
+        const incorrectAnswers = totalAnswers - correctAnswers;
+        
+        return {
+          questionId,
+          questionText: question.questionText,
+          totalAnswers,
+          correctAnswers,
+          incorrectAnswers,
+          correctPercentage: totalAnswers > 0 ? (correctAnswers / totalAnswers * 100).toFixed(2) : 0
+        };
+      });
+    }
     
     res.status(200).json({
       success: true,
-      count: results.length,
-      data: resultsWithAttemptedCount
+      quizTitle: quizDetails.title,
+      stats: {
+        totalParticipants,
+        highestScore,
+        lowestScore,
+        averageScore,
+        totalPossibleScore
+      },
+      questionStats,
+      results
     });
   } catch (err) {
     console.error(err);
