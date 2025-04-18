@@ -341,7 +341,7 @@ export const getQuiz = async (req, res) => {
   }
 };
 
-export const getQuizResultsWithStats = async (req, res) => {
+export const getQuizResults = async (req, res) => {
   try {
     const { _id } = req.query;
     let query = {};
