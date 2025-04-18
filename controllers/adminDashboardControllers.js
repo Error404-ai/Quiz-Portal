@@ -357,10 +357,17 @@ export const getQuizResults = async (req, res) => {
       .populate('userId', 'teamName email')
       .sort('-score');
     
+    const resultsWithAttemptedCount = results.map(result => {
+      return {
+        ...result._doc,
+        attemptedCount: result.attemptedQuestions ? result.attemptedQuestions.length : 0
+      };
+    });
+    
     res.status(200).json({
       success: true,
       count: results.length,
-      data: results
+      data: resultsWithAttemptedCount
     });
   } catch (err) {
     console.error(err);
@@ -370,7 +377,6 @@ export const getQuizResults = async (req, res) => {
     });
   }
 };
-
 //delete questions
 export const deleteQuizQuestion = async (req, res) => {
   try {
