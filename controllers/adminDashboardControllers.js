@@ -362,9 +362,8 @@ export const getQuizResultsWithStats = async (req, res) => {
       ? await Quiz.findById(_id) 
       : { title: "All Quizzes", questions: [] };
     
-
     const results = await Result.find(query)
-      .populate('userId', 'teamName email')
+      .populate('user', 'teamName email')
       .sort('-score');
     
     const totalParticipants = results.length;
@@ -374,10 +373,37 @@ export const getQuizResultsWithStats = async (req, res) => {
     let lowestScore = totalPossibleScore;
     let totalScore = 0;
     
+    const scoreDistribution = {
+      '0-50%': 0,
+      '51-60%': 0,
+      '61-70%': 0,
+      '71-80%': 0,
+      '81-90%': 0,
+      '91-100%': 0
+    };
+    
     for (const result of results) {
       highestScore = Math.max(highestScore, result.score);
       lowestScore = Math.min(lowestScore, result.score);
       totalScore += result.score;
+      
+      const percentageScore = totalPossibleScore > 0 
+        ? (result.score / totalPossibleScore) * 100 
+        : 0;
+      
+      if (percentageScore <= 50) {
+        scoreDistribution['0-50%']++;
+      } else if (percentageScore <= 60) {
+        scoreDistribution['51-60%']++;
+      } else if (percentageScore <= 70) {
+        scoreDistribution['61-70%']++;
+      } else if (percentageScore <= 80) {
+        scoreDistribution['71-80%']++;
+      } else if (percentageScore <= 90) {
+        scoreDistribution['81-90%']++;
+      } else {
+        scoreDistribution['91-100%']++;
+      }
     }
     
     const averageScore = totalParticipants > 0 ? (totalScore / totalParticipants).toFixed(2) : 0;
@@ -406,6 +432,25 @@ export const getQuizResultsWithStats = async (req, res) => {
       });
     }
     
+    const teamResults = results.map(result => {
+      let timeTaken = '';
+      if (result.submittedAt && quizDetails.startTime) {
+        const start = new Date(quizDetails.startTime);
+        const end = new Date(result.submittedAt);
+        const diffInMinutes = Math.floor((end - start) / (1000 * 60));
+        const diffInSeconds = Math.floor((end - start) / 1000) % 60;
+        timeTaken = `${diffInMinutes}:${diffInSeconds < 10 ? '0' + diffInSeconds : diffInSeconds}`;
+      }
+      
+      return {
+        teamName: result.user.teamName,
+        finalScore: totalPossibleScore > 0 
+          ? ((result.score / totalPossibleScore) * 100).toFixed(0) + '%' 
+          : '0%',
+        timeTaken
+      };
+    });
+    
     res.status(200).json({
       success: true,
       quizTitle: quizDetails.title,
@@ -416,8 +461,9 @@ export const getQuizResultsWithStats = async (req, res) => {
         averageScore,
         totalPossibleScore
       },
+      scoreDistribution,
       questionStats,
-      results
+      teamResults
     });
   } catch (err) {
     console.error(err);
@@ -427,6 +473,7 @@ export const getQuizResultsWithStats = async (req, res) => {
     });
   }
 };
+
 //delete questions
 export const deleteQuizQuestion = async (req, res) => {
   try {
