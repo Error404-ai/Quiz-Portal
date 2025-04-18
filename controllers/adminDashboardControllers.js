@@ -127,9 +127,7 @@ export const updateQuizDetailsAdmin = async (req, res) => {
       if (timeLimit !== undefined) quiz.timeLimit = parseInt(timeLimit);
       if (difficulty) quiz.difficulty = difficulty;
       
-      // Set a quizId if it doesn't exist
       if (!quiz.quizId) {
-        // Use the existing _id as the quizId to ensure uniqueness
         quiz.quizId = quiz._id.toString();
       }
       
