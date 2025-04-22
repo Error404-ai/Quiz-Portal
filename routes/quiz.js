@@ -7,7 +7,9 @@ import {
   getUserResult,
   updateQuizDetails,
   getQuizQuestion,
-  markQuestionAttempted
+  markQuestionAttempted,
+  startQuiz,
+  getQuizTimingDetails
 } from '../controllers/quizControllers.js';
 
 const router = express.Router();
@@ -16,8 +18,10 @@ router.use(protect);
 
 router.get('/available', getAvailableQuizzes);
 router.get('/active', getActiveQuiz);
+router.post('/start', startQuiz); 
 router.post('/submit', submitQuizAnswers);
 router.get('/result', getUserResult);
+router.get('/timing', getQuizTimingDetails); 
 router.put('/details', updateQuizDetails);
 router.get('/question', getQuizQuestion);
 router.post('/question/attempt', markQuestionAttempted);

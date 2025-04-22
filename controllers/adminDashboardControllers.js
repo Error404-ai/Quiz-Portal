@@ -431,13 +431,17 @@ export const getQuizResults = async (req, res) => {
     }
     
     const teamResults = results.map(result => {
-      let timeTaken = '';
-      if (result.submittedAt && quizDetails.startTime) {
-        const start = new Date(quizDetails.startTime);
-        const end = new Date(result.submittedAt);
-        const diffInMinutes = Math.floor((end - start) / (1000 * 60));
-        const diffInSeconds = Math.floor((end - start) / 1000) % 60;
-        timeTaken = `${diffInMinutes}:${diffInSeconds < 10 ? '0' + diffInSeconds : diffInSeconds}`;
+      let timeTaken = 'N/A';
+      
+      if (result.submittedAt && result.startTime) {
+        const startTime = new Date(result.startTime);
+        const endTime = new Date(result.submittedAt);
+        const durationInMs = endTime - startTime;
+        
+        // Format as minutes:seconds
+        const minutes = Math.floor(durationInMs / 60000);
+        const seconds = Math.floor((durationInMs % 60000) / 1000);
+        timeTaken = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
       }
       
       return {
@@ -445,6 +449,7 @@ export const getQuizResults = async (req, res) => {
         finalScore: totalPossibleScore > 0 
           ? ((result.score / totalPossibleScore) * 100).toFixed(0) + '%' 
           : '0%',
+        score: result.score,
         timeTaken
       };
     });

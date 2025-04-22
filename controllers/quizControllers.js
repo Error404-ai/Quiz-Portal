@@ -15,13 +15,27 @@ export const getActiveQuiz = async (req, res) => {
     const userId = req.user.id;
     
     let userAttemptedQuestions = [];
-    const existingResult = await Result.findOne({
+    let existingResult = await Result.findOne({
       user: userId,
       quiz: quiz._id
     });
     
     if (existingResult) {
       userAttemptedQuestions = existingResult.attemptedQuestions || [];
+    } else {
+      existingResult = await Result.create({
+        user: userId,
+        quiz: quiz._id,
+        startTime: new Date(),
+        answers: [],
+        score: 0,
+        attemptedQuestions: []
+      });
+    }
+    
+    if (existingResult && !existingResult.startTime) {
+      existingResult.startTime = new Date();
+      await existingResult.save();
     }
     
     const quizForStudent = {
@@ -154,10 +168,15 @@ export const submitQuizAnswers = async (req, res) => {
     if (existingResult) {
       existingResult.answers = processedAnswers;
       existingResult.score = score;
+      existingResult.submittedAt = new Date(); // Ensure submission time is recorded
       existingResult.attemptedQuestions = Array.from(new Set([
         ...existingResult.attemptedQuestions,
         ...attemptedQuestionIds
       ]));
+      
+      if (!existingResult.startTime) {
+        existingResult.startTime = new Date();
+      }
       
       await existingResult.save();
       
@@ -170,13 +189,14 @@ export const submitQuizAnswers = async (req, res) => {
         }
       });
     }
-    
-    const result = await Result.create({
+        const result = await Result.create({
       user: userId,
       quiz: quiz._id,
       answers: processedAnswers,
       attemptedQuestions: attemptedQuestionIds,
-      score
+      score,
+      startTime: new Date(), 
+      submittedAt: new Date() 
     });
     
     res.status(201).json({
