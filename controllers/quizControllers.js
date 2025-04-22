@@ -33,11 +33,6 @@ export const getActiveQuiz = async (req, res) => {
       });
     }
     
-    if (existingResult && !existingResult.startTime) {
-      existingResult.startTime = new Date();
-      await existingResult.save();
-    }
-    
     const quizForStudent = {
       _id: quiz._id,
       title: quiz.title,
@@ -64,7 +59,6 @@ export const getActiveQuiz = async (req, res) => {
     });
   }
 };
-
 export const getAvailableQuizzes = async (req, res) => {
   try {
     console.log(`Total quizzes in DB: ${await Quiz.countDocuments()}`);
@@ -168,15 +162,11 @@ export const submitQuizAnswers = async (req, res) => {
     if (existingResult) {
       existingResult.answers = processedAnswers;
       existingResult.score = score;
-      existingResult.submittedAt = new Date(); // Ensure submission time is recorded
+      existingResult.submittedAt = new Date();
       existingResult.attemptedQuestions = Array.from(new Set([
         ...existingResult.attemptedQuestions,
         ...attemptedQuestionIds
       ]));
-      
-      if (!existingResult.startTime) {
-        existingResult.startTime = new Date();
-      }
       
       await existingResult.save();
       
@@ -189,13 +179,14 @@ export const submitQuizAnswers = async (req, res) => {
         }
       });
     }
+    
     const result = await Result.create({
       user: userId,
       quiz: quiz._id,
       answers: processedAnswers,
       attemptedQuestions: attemptedQuestionIds,
       score,
-      startTime: existingResult?.startTime || new Date(), 
+      startTime: new Date(),
       submittedAt: new Date()
     });
     
@@ -309,7 +300,6 @@ export const getQuizQuestion = async (req, res) => {
     const userId = req.user.id;
     
     if (!quizId) {
-      console.error('[ERROR] Quiz ID is required');
       return res.status(400).json({
         success: false,
         message: 'Quiz ID is required'
@@ -321,7 +311,6 @@ export const getQuizQuestion = async (req, res) => {
     const quiz = await Quiz.findById(quizId);
     
     if (!quiz) {
-      console.error('[ERROR] Quiz not found');
       return res.status(404).json({
         success: false,
         message: 'Quiz not found'
@@ -329,7 +318,6 @@ export const getQuizQuestion = async (req, res) => {
     }
         
     if (!quiz.questions || quiz.questions.length === 0) {
-      console.error('[ERROR] No questions found in this quiz');
       return res.status(404).json({
         success: false,
         message: 'No questions found in this quiz'
@@ -337,7 +325,6 @@ export const getQuizQuestion = async (req, res) => {
     }
     
     if (index < 0 || index >= quiz.questions.length) {
-      console.error('[ERROR] Invalid question index');
       return res.status(400).json({
         success: false,
         message: 'Invalid question index'
@@ -347,13 +334,22 @@ export const getQuizQuestion = async (req, res) => {
     const question = quiz.questions[index];
     
     let attempted = false;
-    const userResult = await Result.findOne({
+    let existingResult = await Result.findOne({
       user: userId,
       quiz: quiz._id
     });
     
-    if (userResult && userResult.attemptedQuestions) {
-      attempted = userResult.attemptedQuestions.some(
+    if (!existingResult) {
+      existingResult = await Result.create({
+        user: userId,
+        quiz: quiz._id,
+        startTime: new Date(),
+        answers: [],
+        score: 0,
+        attemptedQuestions: []
+      });
+    } else if (existingResult.attemptedQuestions) {
+      attempted = existingResult.attemptedQuestions.some(
         q => q.toString() === question._id.toString()
       );
     }
@@ -380,14 +376,13 @@ export const getQuizQuestion = async (req, res) => {
     
     res.status(200).json(responseData);
   } catch (err) {
-    console.error('[ERROR] Error getting quiz question:', err);
+    console.error('Error getting quiz question:', err);
     res.status(500).json({
       success: false,
       message: 'Server error'
     });
   }
 };
-
 export const markQuestionAttempted = async (req, res) => {
   try {
     const { quizId, questionId } = req.body;
@@ -427,6 +422,7 @@ export const markQuestionAttempted = async (req, res) => {
       result = new Result({
         user: userId,
         quiz: quizId,
+        startTime: new Date(),
         answers: [],
         attemptedQuestions: [questionId]
       });

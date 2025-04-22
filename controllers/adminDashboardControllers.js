@@ -430,33 +430,35 @@ export const getQuizResults = async (req, res) => {
       });
     }
 
-const teamResults = results.map(result => {
-  let timeTaken = 'N/A';
-  
-  if (result.submittedAt && result.startTime) {
-    const startTime = new Date(result.startTime);
-    const endTime = new Date(result.submittedAt);
-    
-    if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime())) {
-      const durationInMs = endTime - startTime;
+    const teamResults = results.map(result => {
+      let timeTaken = 'N/A';
       
-      if (durationInMs >= 0) { 
-        const minutes = Math.floor(durationInMs / 60000);
-        const seconds = Math.floor((durationInMs % 60000) / 1000);
-        timeTaken = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+      if (result.submittedAt && result.startTime) {
+        const startTime = new Date(result.startTime);
+        const endTime = new Date(result.submittedAt);
+        
+        console.log(`Team: ${result.user?.teamName}, StartTime: ${startTime}, SubmitTime: ${endTime}`);
+        
+        if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime())) {
+          const durationInMs = endTime - startTime;
+          
+          if (durationInMs >= 0) { 
+            const minutes = Math.floor(durationInMs / 60000);
+            const seconds = Math.floor((durationInMs % 60000) / 1000);
+            timeTaken = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+          }
+        }
       }
-    }
-  }
-  
-  return {
-    teamName: result.user?.teamName || 'Unknown Team',
-    finalScore: totalPossibleScore > 0 
-      ? ((result.score / totalPossibleScore) * 100).toFixed(0) + '%' 
-      : '0%',
-    score: result.score,
-    timeTaken
-  };
-});
+      
+      return {
+        teamName: result.user?.teamName || 'Unknown Team',
+        finalScore: totalPossibleScore > 0 
+          ? ((result.score / totalPossibleScore) * 100).toFixed(0) + '%' 
+          : '0%',
+        score: result.score,
+        timeTaken
+      };
+    });
     
     res.status(200).json({
       success: true,
@@ -480,7 +482,6 @@ const teamResults = results.map(result => {
     });
   }
 };
-
 //delete questions
 export const deleteQuizQuestion = async (req, res) => {
   try {
