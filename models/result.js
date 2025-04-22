@@ -1,3 +1,5 @@
+import mongoose from 'mongoose';
+
 const ResultSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -39,3 +41,5 @@ const ResultSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+export default mongoose.model('Result', ResultSchema);
