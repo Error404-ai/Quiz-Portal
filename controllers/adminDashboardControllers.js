@@ -429,30 +429,34 @@ export const getQuizResults = async (req, res) => {
         };
       });
     }
+
+const teamResults = results.map(result => {
+  let timeTaken = 'N/A';
+  
+  if (result.submittedAt && result.startTime) {
+    const startTime = new Date(result.startTime);
+    const endTime = new Date(result.submittedAt);
     
-    const teamResults = results.map(result => {
-      let timeTaken = 'N/A';
+    if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime())) {
+      const durationInMs = endTime - startTime;
       
-      if (result.submittedAt && result.startTime) {
-        const startTime = new Date(result.startTime);
-        const endTime = new Date(result.submittedAt);
-        const durationInMs = endTime - startTime;
-        
-        // Format as minutes:seconds
+      if (durationInMs >= 0) { 
         const minutes = Math.floor(durationInMs / 60000);
         const seconds = Math.floor((durationInMs % 60000) / 1000);
         timeTaken = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
       }
-      
-      return {
-        teamName: result.user.teamName,
-        finalScore: totalPossibleScore > 0 
-          ? ((result.score / totalPossibleScore) * 100).toFixed(0) + '%' 
-          : '0%',
-        score: result.score,
-        timeTaken
-      };
-    });
+    }
+  }
+  
+  return {
+    teamName: result.user?.teamName || 'Unknown Team',
+    finalScore: totalPossibleScore > 0 
+      ? ((result.score / totalPossibleScore) * 100).toFixed(0) + '%' 
+      : '0%',
+    score: result.score,
+    timeTaken
+  };
+});
     
     res.status(200).json({
       success: true,

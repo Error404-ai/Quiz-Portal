@@ -189,14 +189,14 @@ export const submitQuizAnswers = async (req, res) => {
         }
       });
     }
-        const result = await Result.create({
+    const result = await Result.create({
       user: userId,
       quiz: quiz._id,
       answers: processedAnswers,
       attemptedQuestions: attemptedQuestionIds,
       score,
-      startTime: new Date(), 
-      submittedAt: new Date() 
+      startTime: existingResult?.startTime || new Date(), 
+      submittedAt: new Date()
     });
     
     res.status(201).json({
