@@ -5,6 +5,10 @@ const QuestionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  imageUrl: {
+    type: String,
+    default: null
+  },
   options: [{
     type: String,
     required: true
@@ -18,7 +22,6 @@ const QuestionSchema = new mongoose.Schema({
     default: 1
   }
 });
-
 const QuizSchema = new mongoose.Schema({
   quizId: {
     type: String,

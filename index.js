@@ -2,11 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import adminDashboardRoutes from './routes/adminDashboard.js';
 import quizRoutes from './routes/quiz.js';
+import imageRoutes from './routes/image.js';
 
 dotenv.config();
 
@@ -15,12 +18,22 @@ connectDB();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Get current directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/admin/dashboard', adminDashboardRoutes);
+app.use('/api/quiz', quizRoutes);
+app.use('/api/images', imageRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -29,10 +42,3 @@ app.get('/health', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
-
-
-app.use('/api/admin', adminRoutes);
-
-// Use the routes
-app.use('/api/admin/dashboard', adminDashboardRoutes);
-app.use('/api/quiz', quizRoutes);

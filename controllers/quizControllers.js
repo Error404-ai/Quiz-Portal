@@ -39,6 +39,7 @@ export const getActiveQuiz = async (req, res) => {
       questions: quiz.questions.map(q => ({
         _id: q._id,
         questionText: q.questionText,
+        imageUrl: q.imageUrl, // Include the image URL
         options: q.options,
         points: q.points,
         attempted: userAttemptedQuestions.includes(q._id)
@@ -357,6 +358,7 @@ export const getQuizQuestion = async (req, res) => {
     const sanitizedQuestion = {
       _id: question._id,
       questionText: question.questionText,
+      imageUrl: question.imageUrl, // Include the image URL
       options: question.options,
       points: question.points,
       attempted: attempted
