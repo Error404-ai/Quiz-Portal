@@ -29,6 +29,11 @@ const ResultSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Quiz.questions'
   }],
+  // Add this field to store the shuffled question order for this user
+  questionOrder: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Quiz.questions'
+  }],
   score: {
     type: Number,
     default: 0

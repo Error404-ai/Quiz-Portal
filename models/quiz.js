@@ -22,6 +22,7 @@ const QuestionSchema = new mongoose.Schema({
     default: 1
   }
 });
+
 const QuizSchema = new mongoose.Schema({
   quizId: {
     type: String,
@@ -51,6 +52,10 @@ const QuizSchema = new mongoose.Schema({
     enum: ['pending', 'active', 'completed'],
     default: 'pending'
   },
+  shuffleQuestions: {
+    type: Boolean,
+    default: false
+  },
   questions: [QuestionSchema],
   startTime: {
     type: Date
@@ -63,5 +68,4 @@ const QuizSchema = new mongoose.Schema({
     default: Date.now
   }
 });
-
 export default mongoose.model('Quiz', QuizSchema);

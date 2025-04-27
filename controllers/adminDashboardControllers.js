@@ -174,7 +174,7 @@ export const Question = async (req, res) => {
 };
 export const updateQuizDetailsAdmin = async (req, res) => {
   try {
-    const { title, description, timeLimit, difficulty, _id } = req.body;
+    const { title, description, timeLimit, difficulty, shuffleQuestions, _id } = req.body;
     
     if (!title) {
       return res.status(400).json({
@@ -197,6 +197,14 @@ export const updateQuizDetailsAdmin = async (req, res) => {
       });
     }
     
+    // Validate shuffleQuestions if provided
+    if (shuffleQuestions !== undefined && typeof shuffleQuestions !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'shuffleQuestions must be a boolean value'
+      });
+    }
+    
     let quiz;
     
     if (_id) {
@@ -213,6 +221,7 @@ export const updateQuizDetailsAdmin = async (req, res) => {
       if (description !== undefined) quiz.description = description;
       if (timeLimit !== undefined) quiz.timeLimit = parseInt(timeLimit);
       if (difficulty) quiz.difficulty = difficulty;
+      if (shuffleQuestions !== undefined) quiz.shuffleQuestions = shuffleQuestions;
       
       if (!quiz.quizId) {
         quiz.quizId = quiz._id.toString();
@@ -233,6 +242,7 @@ export const updateQuizDetailsAdmin = async (req, res) => {
         description: description || '',
         timeLimit: timeLimit !== undefined ? parseInt(timeLimit) : 0,
         difficulty: difficulty || 'medium',
+        shuffleQuestions: shuffleQuestions !== undefined ? shuffleQuestions : false,
         quizId: uniqueId.toString() // Add a unique quizId
       });
       
@@ -339,6 +349,7 @@ export const getQuizDetails = async (req, res) => {
       timeLimit: quiz.timeLimit || 0,
       difficulty: quiz.difficulty || "medium",
       status: quiz.status,
+      shuffleQuestions: quiz.shuffleQuestions || false,
       startTime: quiz.startTime,
       endTime: quiz.endTime,
       createdAt: quiz.createdAt
@@ -356,7 +367,6 @@ export const getQuizDetails = async (req, res) => {
     });
   }
 };
-
 export const deleteQuizDetails = async (req, res) => {
   try {
     const { _id } = req.query;
@@ -713,6 +723,54 @@ export const editQuizQuestion = async (req, res) => {
       success: false,
       message: 'Server error',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+export const toggleQuestionShuffling = async (req, res) => {
+  try {
+    const { _id, shuffleQuestions } = req.body;
+    
+    if (!_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz ID is required'
+      });
+    }
+    
+    if (typeof shuffleQuestions !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'shuffleQuestions must be a boolean value'
+      });
+    }
+    
+    const quiz = await Quiz.findById(_id);
+    
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+    
+    quiz.shuffleQuestions = shuffleQuestions;
+    await quiz.save();
+    
+    res.status(200).json({
+      success: true,
+      message: `Question shuffling ${shuffleQuestions ? 'enabled' : 'disabled'}`,
+      data: {
+        _id: quiz._id,
+        title: quiz.title,
+        shuffleQuestions: quiz.shuffleQuestions
+      }
+    });
+  } catch (err) {
+    console.error('Error toggling question shuffling:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 };
