@@ -14,13 +14,16 @@ export const validateSignup = [
     .isEmail().withMessage('Valid email is required')
     .normalizeEmail()
     .custom((value, { req }) => {
-      if (!value.match(/^[a-zA-Z0-9._%+-]+[0-9]{4,8}@akgec\.ac\.in$/)) {
-        throw new Error('Email must be a valid AKGEC college email (ending with @akgec.ac.in)');
+      if (!value.match(/\.edu$|\.ac\.[a-z]{2}$/)) {
+        throw new Error('Must use a college email address');
       }
+      
+      // Check if email contains the student ID
       const studentId = req.body.studentId;
       if (!value.includes(studentId)) {
         throw new Error('Email must contain your student ID');
       }
+      
       return true;
     }),
   body('password').isLength({ min: 6 })
