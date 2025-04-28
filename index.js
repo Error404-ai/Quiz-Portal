@@ -18,38 +18,16 @@ connectDB();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Get current directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://quizze-portal.netlify.app',
-  'https://quizze-portal.netlify.app'
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log("Blocked by CORS:", origin);
-      callback(null, true);
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
+// Serve static files from the uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-app.options('*', cors(corsOptions));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -58,7 +36,7 @@ app.use('/api/quiz', quizRoutes);
 app.use('/api/images', imageRoutes);
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', cors: 'enabled' });
+  res.json({ status: 'ok' });
 });
 
 app.listen(port, () => {
