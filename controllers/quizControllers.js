@@ -124,50 +124,7 @@ export const getQuizQuestion = async (req, res) => {
       quiz: quiz._id
     });
     
-    let questions = quiz.questions;
-    questionIndex = index;
-    
-    // If shuffling is enabled and we have a stored question order, use it
-    if (quiz.shuffleQuestions && existingResult && existingResult.questionOrder && existingResult.questionOrder.length > 0) {
-      const orderedIds = existingResult.questionOrder;
-      questionIndex = index < orderedIds.length ? index : 0;
-      const questionId = orderedIds[questionIndex];
-      const question = quiz.questions.find(q => q._id.toString() === questionId.toString());
-      
-      if (question) {
-        // We found the question in the saved order
-        const attempted = existingResult.attemptedQuestions ? 
-                           existingResult.attemptedQuestions.some(q => q.toString() === question._id.toString()) : 
-                           false;
-                           
-        const sanitizedQuestion = {
-          _id: question._id,
-          questionText: question.questionText,
-          imageUrl: question.imageUrl,
-          options: question.options,
-          points: question.points,
-          attempted: attempted
-        };
-        
-        const responseData = {
-          success: true,
-          data: {
-            quizTitle: quiz.title,
-            quizId: quiz._id,
-            timeLimit: quiz.timeLimit,
-            totalQuestions: quiz.questions.length,
-            currentQuestion: index + 1,
-            questionData: sanitizedQuestion
-          }
-        };
-        
-        return res.status(200).json(responseData);
-      }
-    }
-    
-    // Default behavior if not using saved order
-    const question = quiz.questions[index];
-    
+    // Create result if it doesn't exist
     if (!existingResult) {
       existingResult = await Result.create({
         user: userId,
@@ -176,27 +133,52 @@ export const getQuizQuestion = async (req, res) => {
         answers: [],
         score: 0,
         attemptedQuestions: [],
-        questionOrder: quiz.shuffleQuestions ? quiz.questions.map(q => q._id) : []
+        questionOrder: quiz.shuffleQuestions ? shuffleArray(quiz.questions.map(q => q._id.toString())) : []
       });
-      
-      // If shuffling is enabled, save shuffled order on first access
-      if (quiz.shuffleQuestions) {
-        const shuffledIds = shuffleArray(quiz.questions.map(q => q._id));
-        existingResult.questionOrder = shuffledIds;
-        await existingResult.save();
+    } else if (quiz.shuffleQuestions && (!existingResult.questionOrder || existingResult.questionOrder.length === 0)) {
+      // If we have a result but no question order yet and shuffling is enabled
+      existingResult.questionOrder = shuffleArray(quiz.questions.map(q => q._id.toString()));
+      await existingResult.save();
+    }
+    
+    let questionData;
+    let currentIndex = index;
+    
+    // If shuffling is enabled and we have a stored question order, use it
+    if (quiz.shuffleQuestions && existingResult.questionOrder && existingResult.questionOrder.length > 0) {
+      if (index >= existingResult.questionOrder.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid question index'
+        });
       }
-    } 
+      
+      const questionId = existingResult.questionOrder[index];
+      const question = quiz.questions.find(q => q._id.toString() === questionId);
+      
+      if (!question) {
+        return res.status(404).json({
+          success: false,
+          message: 'Question not found'
+        });
+      }
+      
+      questionData = question;
+    } else {
+      // Use default order
+      questionData = quiz.questions[index];
+    }
     
     const attempted = existingResult.attemptedQuestions ? 
-                       existingResult.attemptedQuestions.some(q => q.toString() === question._id.toString()) : 
+                       existingResult.attemptedQuestions.some(q => q.toString() === questionData._id.toString()) : 
                        false;
     
     const sanitizedQuestion = {
-      _id: question._id,
-      questionText: question.questionText,
-      imageUrl: question.imageUrl,
-      options: question.options,
-      points: question.points,
+      _id: questionData._id,
+      questionText: questionData.questionText,
+      imageUrl: questionData.imageUrl,
+      options: questionData.options,
+      points: questionData.points || 1,
       attempted: attempted
     };
     
@@ -217,7 +199,8 @@ export const getQuizQuestion = async (req, res) => {
     console.error('Error getting quiz question:', err);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 };
