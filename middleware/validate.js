@@ -1,6 +1,12 @@
 import { body, validationResult } from 'express-validator';
+import { verifyRecaptcha } from './recaptcha.js';
 
+// Updated validateSignup with reCAPTCHA integration
 export const validateSignup = [
+  // First verify the reCAPTCHA
+  verifyRecaptcha,
+  
+  // Then proceed with the existing validation rules
   body('teamName').notEmpty().trim().escape()
     .withMessage('Team name is required'),
   body('teamLeaderName').notEmpty().trim().escape()
@@ -31,6 +37,10 @@ export const validateSignup = [
     }
     return true;
   }),
+  // Required field for reCAPTCHA token
+  body('recaptchaToken').notEmpty()
+    .withMessage('reCAPTCHA verification is required'),
+  
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
