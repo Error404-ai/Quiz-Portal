@@ -1,27 +1,24 @@
 import axios from 'axios';
 
 export const verifyRecaptcha = async (req, res, next) => {
-  console.log('Body received:', Object.keys(req.body));
-  const { recaptchaToken } = req.body;
-
-  if (recaptchaToken) {
-    console.log(`Token received with length: ${recaptchaToken.length}`);
-    console.log(`Token first 10 chars: ${recaptchaToken.substring(0, 10)}...`);
-  } else {
-    console.log('No recaptchaToken found in request body');
+  // Skip verification in development environment if needed
+  if (process.env.NODE_ENV === 'development' && process.env.SKIP_RECAPTCHA === 'true') {
+    console.log('Skipping reCAPTCHA verification in development mode');
+    return next();
   }
 
+  const { recaptchaToken } = req.body;
+
+  // Check if secret key is configured
   if (!process.env.RECAPTCHA_SECRET_KEY) {
     console.error('RECAPTCHA_SECRET_KEY is not set in environment variables');
     return res.status(500).json({
       success: false,
       message: 'Server configuration error'
     });
-  } else {
-    console.log('RECAPTCHA_SECRET_KEY is set (first few chars):', 
-      process.env.RECAPTCHA_SECRET_KEY.substring(0, 5) + '...');
   }
 
+  // Verify token is provided
   if (!recaptchaToken) {
     return res.status(400).json({
       success: false,
@@ -30,22 +27,29 @@ export const verifyRecaptcha = async (req, res, next) => {
   }
 
   try {
-    console.log('Making request to Google reCAPTCHA API...');
+    // Use URLSearchParams for proper encoding of form data
+    const formData = new URLSearchParams();
+    formData.append('secret', process.env.RECAPTCHA_SECRET_KEY);
+    formData.append('response', recaptchaToken);
+    
+    // Get client IP if available to improve verification
+    if (req.ip) {
+      formData.append('remoteip', req.ip);
+    }
+
+    // Make request to Google's reCAPTCHA API
     const response = await axios.post(
       'https://www.google.com/recaptcha/api/siteverify',
-      null,
+      formData.toString(),
       {
-        params: {
-          secret: process.env.RECAPTCHA_SECRET_KEY,
-          response: recaptchaToken
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
         }
       }
     );
 
-    console.log('Google API response:', JSON.stringify(response.data));
-
     if (!response.data.success) {
-      console.error('reCAPTCHA validation failed with error codes:', response.data['error-codes']);
+      console.error('reCAPTCHA validation failed with errors:', response.data['error-codes']);
       return res.status(400).json({
         success: false,
         message: 'reCAPTCHA verification failed. Please try again.',
@@ -53,14 +57,18 @@ export const verifyRecaptcha = async (req, res, next) => {
       });
     }
 
-    console.log('reCAPTCHA validation successful');
+    // Optionally verify minimum score for v3 reCAPTCHA
+    if (response.data.score !== undefined && response.data.score < 0.5) {
+      return res.status(400).json({
+        success: false,
+        message: 'reCAPTCHA score too low. Please try again.'
+      });
+    }
+
+    // Verification successful
     next();
   } catch (error) {
     console.error('Error calling reCAPTCHA API:', error.message);
-    if (error.response) {
-      console.error('Error response data:', error.response.data);
-      console.error('Error response status:', error.response.status);
-    }
     return res.status(500).json({
       success: false,
       message: 'Error verifying reCAPTCHA. Please try again later.'
