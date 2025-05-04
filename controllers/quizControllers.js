@@ -118,17 +118,25 @@ export const getQuizQuestion = async (req, res) => {
       });
     }
     
-    const index = parseInt(questionIndex) || 0;
+    // Ensure questionIndex is properly parsed as an integer
+    const index = parseInt(questionIndex, 10);
+    if (isNaN(index)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid question index'
+      });
+    }
     
+    // Find the quiz by ID
     const quiz = await Quiz.findById(quizId);
-    
     if (!quiz) {
       return res.status(404).json({
         success: false,
         message: 'Quiz not found'
       });
     }
-        
+    
+    // Check if the quiz has questions
     if (!quiz.questions || quiz.questions.length === 0) {
       return res.status(404).json({
         success: false,
@@ -136,16 +144,19 @@ export const getQuizQuestion = async (req, res) => {
       });
     }
     
+    // Find existing result or create a new one
     let existingResult = await Result.findOne({
       user: userId,
       quiz: quiz._id
     });
     
     if (!existingResult) {
+      // Create question order based on quiz settings
       const questionOrder = quiz.shuffleQuestions
         ? shuffleArray(quiz.questions.map(q => q._id.toString()))
         : quiz.questions.map(q => q._id.toString());
       
+      // Create new result document
       existingResult = await Result.create({
         user: userId,
         quiz: quiz._id,
@@ -156,6 +167,7 @@ export const getQuizQuestion = async (req, res) => {
         questionOrder: questionOrder
       });
     } else if (!existingResult.questionOrder || existingResult.questionOrder.length === 0) {
+      // If result exists but doesn't have question order, create one
       const questionOrder = quiz.shuffleQuestions
         ? shuffleArray(quiz.questions.map(q => q._id.toString()))
         : quiz.questions.map(q => q._id.toString());
@@ -164,49 +176,56 @@ export const getQuizQuestion = async (req, res) => {
       await existingResult.save();
     }
     
-    if (index < 0 || (existingResult.questionOrder && index >= existingResult.questionOrder.length) || 
-        (!existingResult.questionOrder && index >= quiz.questions.length)) {
+    // Validate index bounds
+    const questionOrderLength = existingResult.questionOrder ? existingResult.questionOrder.length : quiz.questions.length;
+    if (index < 0 || index >= questionOrderLength) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid question index'
+        message: 'Invalid question index: out of bounds'
       });
     }
     
     let questionData;
     
+    // Get the appropriate question based on question order
     if (existingResult.questionOrder && existingResult.questionOrder.length > 0) {
       const questionId = existingResult.questionOrder[index];
       questionData = quiz.questions.find(q => q._id.toString() === questionId);
       
+      // Handle the case where the question is not found
       if (!questionData) {
+        console.error(`Question not found: questionId=${questionId}, index=${index}`);
         return res.status(404).json({
           success: false,
-          message: 'Question not found'
+          message: 'Question not found in quiz'
         });
       }
     } else {
       questionData = quiz.questions[index];
     }
     
-    const attempted = existingResult.attemptedQuestions ? 
-                       existingResult.attemptedQuestions.some(q => q.toString() === questionData._id.toString()) : 
-                       false;
+    // Check if the question was previously attempted
+    const attempted = existingResult.attemptedQuestions 
+      ? existingResult.attemptedQuestions.some(q => q.toString() === questionData._id.toString())
+      : false;
     
+    // Prepare sanitized response without revealing correct answers
     const sanitizedQuestion = {
       _id: questionData._id,
       questionText: questionData.questionText,
-      imageUrl: questionData.imageUrl,
+      imageUrl: questionData.imageUrl || null,
       options: questionData.options,
       points: questionData.points || 1,
       attempted: attempted
     };
     
+    // Construct final response
     const responseData = {
       success: true,
       data: {
         quizTitle: quiz.title,
         quizId: quiz._id,
-        timeLimit: quiz.timeLimit,
+        timeLimit: quiz.timeLimit || 0,
         totalQuestions: quiz.questions.length,
         currentQuestion: index + 1,
         questionData: sanitizedQuestion
@@ -223,7 +242,6 @@ export const getQuizQuestion = async (req, res) => {
     });
   }
 };
-
 
 // Other existing functions remain unchanged
 export const getAvailableQuizzes = async (req, res) => {
