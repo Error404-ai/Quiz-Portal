@@ -11,7 +11,8 @@ import {
   updateQuizDetailsAdmin,
   deleteQuizDetails,
   deleteQuizQuestion,
-  editQuizQuestion
+  editQuizQuestion,
+  toggleQuestionShuffling
 } from '../controllers/adminDashboardControllers.js';
 
 const router = express.Router();
@@ -29,5 +30,6 @@ router.put('/quiz/details', updateQuizDetailsAdmin);
 router.delete('/quiz/details', deleteQuizDetails); 
 router.delete('/quiz/:quizId/question/:questionId', deleteQuizQuestion);
 router.put('/quiz/:quizId/question/:questionId', editQuizQuestion);
+router.patch('/shuffle', toggleQuestionShuffling);
 
 export default router;

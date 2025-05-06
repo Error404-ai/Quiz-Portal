@@ -8,7 +8,6 @@ import {
   updateQuizDetails,
   getQuizQuestion,
   markQuestionAttempted,
-  toggleQuestionShuffling
 } from '../controllers/quizControllers.js';
 
 const router = express.Router();
@@ -22,6 +21,6 @@ router.get('/result', getUserResult);
 router.put('/details', updateQuizDetails);
 router.get('/question', getQuizQuestion);
 router.post('/question/attempt', markQuestionAttempted);
-router.put('/shuffle', toggleQuestionShuffling);
+
 
 export default router;
