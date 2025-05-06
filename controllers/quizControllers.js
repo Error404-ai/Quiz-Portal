@@ -104,8 +104,6 @@ export const getActiveQuiz = async (req, res) => {
   }
 };
 
-
-// Update getQuizQuestion to also handle shuffling
 export const getQuizQuestion = async (req, res) => {
   try {
     const { quizId, questionIndex } = req.query;
@@ -147,6 +145,7 @@ export const getQuizQuestion = async (req, res) => {
     });
     
     if (!existingResult) {
+      // Create new result with question order
       const questionOrder = quiz.shuffleQuestions
         ? shuffleArray(quiz.questions.map(q => q._id.toString()))
         : quiz.questions.map(q => q._id.toString());
@@ -160,38 +159,72 @@ export const getQuizQuestion = async (req, res) => {
         attemptedQuestions: [],
         questionOrder: questionOrder
       });
+      
+      console.log(`Created new result with questionOrder: ${questionOrder}`);
     } else if (!existingResult.questionOrder || existingResult.questionOrder.length === 0) {
+      // Update existing result with question order if missing
       const questionOrder = quiz.shuffleQuestions
         ? shuffleArray(quiz.questions.map(q => q._id.toString()))
         : quiz.questions.map(q => q._id.toString());
       
       existingResult.questionOrder = questionOrder;
       await existingResult.save();
+      
+      console.log(`Updated existing result with questionOrder: ${questionOrder}`);
     }
     
-    const questionOrderLength = existingResult.questionOrder ? existingResult.questionOrder.length : quiz.questions.length;
-    if (index < 0 || index >= questionOrderLength) {
+    // Validate that we have a question order
+    if (!existingResult.questionOrder || existingResult.questionOrder.length === 0) {
+      console.error("Question order is still empty after initialization");
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to initialize question order',
+      });
+    }
+    
+    // Check if index is valid
+    if (index < 0 || index >= existingResult.questionOrder.length) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid question index: out of bounds'
+        message: `Invalid question index: ${index} (max: ${existingResult.questionOrder.length - 1})`,
       });
     }
     
     let questionData;
+    const questionId = existingResult.questionOrder[index];
     
-    if (existingResult.questionOrder && existingResult.questionOrder.length > 0) {
-      const questionId = existingResult.questionOrder[index];
-      questionData = quiz.questions.find(q => q._id.toString() === questionId);
+    console.log(`Finding question with ID: ${questionId} at index ${index}`);
+    console.log(`Available question IDs: ${quiz.questions.map(q => q._id.toString())}`);
+    
+    // Try to find the question, ensuring string comparison
+    questionData = quiz.questions.find(q => q._id.toString() === questionId.toString());
+    
+    if (!questionData) {
+      console.error(`Question not found: questionId=${questionId}, index=${index}`);
       
-      if (!questionData) {
-        console.error(`Question not found: questionId=${questionId}, index=${index}`);
+      // Attempt to recover by resetting question order to match current quiz questions
+      existingResult.questionOrder = quiz.questions.map(q => q._id.toString());
+      await existingResult.save();
+      
+      // Try to get the question at the same index from updated order
+      if (index < existingResult.questionOrder.length) {
+        const newQuestionId = existingResult.questionOrder[index];
+        questionData = quiz.questions.find(q => q._id.toString() === newQuestionId.toString());
+        
+        if (!questionData) {
+          return res.status(404).json({
+            success: false,
+            message: 'Question not found in quiz even after order reset',
+          });
+        }
+        
+        console.log(`Recovered with new question ID: ${newQuestionId}`);
+      } else {
         return res.status(404).json({
           success: false,
-          message: 'Question not found in quiz'
+          message: 'Question index out of bounds after order reset',
         });
       }
-    } else {
-      questionData = quiz.questions[index];
     }
     
     const attempted = existingResult.attemptedQuestions 
