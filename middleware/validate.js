@@ -1,10 +1,11 @@
 import { body, validationResult } from 'express-validator';
-import { verifyRecaptcha } from './recaptcha.js';
+// import { verifyRecaptcha } from './recaptcha.js';
 
-// Updated validateSignup with reCAPTCHA integration
+// Updated validateSignup with reCAPTCHA integration commented out
 export const validateSignup = [
   // First verify the reCAPTCHA
-  verifyRecaptcha,
+  // Commented out reCAPTCHA verification
+  // verifyRecaptcha,
   
   // Then proceed with the existing validation rules
   body('teamName').notEmpty().trim().escape()
@@ -29,6 +30,8 @@ export const validateSignup = [
       }
       return true;
     }),
+  // Password validation commented out
+  /*
   body('password').isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long'),
   body('confirmPassword').custom((value, { req }) => {
@@ -37,9 +40,10 @@ export const validateSignup = [
     }
     return true;
   }),
+  */
   // Required field for reCAPTCHA token
-  body('recaptchaToken').notEmpty()
-    .withMessage('reCAPTCHA verification is required'),
+  // body('recaptchaToken').notEmpty()
+  //   .withMessage('reCAPTCHA verification is required'),
   
   (req, res, next) => {
     const errors = validationResult(req);

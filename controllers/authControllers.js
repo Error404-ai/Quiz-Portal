@@ -18,21 +18,24 @@ const generateRefreshToken = (id) => {
 
 export const signup = async (req, res) => {
   try {
-    const { teamName, teamLeaderName, email, studentId, password, confirmPassword } = req.body;
+    // Modified to make password and confirmPassword optional
+    const { teamName, teamLeaderName, email, studentId, password } = req.body;
 
-    if (!teamName || !teamLeaderName || !email || !studentId || !password) {
+    // Changed required fields check to exclude password
+    if (!teamName || !teamLeaderName || !email || !studentId) {
       return res.status(400).json({
         success: false,
         message: 'Please provide all required fields'
       });
     }
 
-    if (password !== confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Passwords do not match'
-      });
-    }
+    // Removed password match check
+    // if (password !== confirmPassword) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: 'Passwords do not match'
+    //   });
+    // }
 
     const existingUserEmail = await User.findOne({ email });
     if (existingUserEmail) {
@@ -50,12 +53,14 @@ export const signup = async (req, res) => {
       });
     }
 
+    // Create user with default password if none provided
     const user = await User.create({
       teamName,
       teamLeaderName,
       email,
       studentId,
-      password
+      // Set default password or use provided password
+      password: password || 'defaultPassword123' // You should change this to a secure default
     });
 
     const accessToken = generateAccessToken(user._id);
