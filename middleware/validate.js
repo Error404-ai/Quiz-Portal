@@ -15,8 +15,15 @@ export const validateSignup = [
   body('studentId')
     .notEmpty().withMessage('Student ID is required')
     .trim()
-    .isLength({ min: 4, max: 10 }).withMessage('Student ID must be between 4 and 10 digits')
-    .matches(/^(23|24)\d{2,8}$/).withMessage('Student ID must start with 23 or 24 and be 4-10 digits long'),
+    .custom((value) => {
+      // Updated regex to accept IDs ending with "-d"
+      // Allows: 23XXXX, 24XXXX, 23XXXX-d, 24XXXX-d patterns
+      const studentIdRegex = /^(23|24)\d{2,8}(-d)?$/;
+      if (!studentIdRegex.test(value)) {
+        throw new Error('Student ID must start with 23 or 24, be 4-10 digits long, and can optionally end with "-d"');
+      }
+      return true;
+    }),
   body('email')
     .isEmail().withMessage('Valid email is required')
     .normalizeEmail()
@@ -24,7 +31,8 @@ export const validateSignup = [
       if (!value.match(/^[a-zA-Z0-9._%+-]+[0-9]{4,8}@akgec\.ac\.in$/)) {
         throw new Error('Email must be a valid AKGEC college email (ending with @akgec.ac.in)');
       }
-      const studentId = req.body.studentId;
+      // Extract the base student ID (removing "-d" if present) for email validation
+      const studentId = req.body.studentId.replace(/-d$/, '');
       if (!value.includes(studentId)) {
         throw new Error('Email must contain your student ID');
       }
