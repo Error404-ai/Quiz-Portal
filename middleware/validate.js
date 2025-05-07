@@ -28,7 +28,7 @@ export const validateSignup = [
     .isEmail().withMessage('Valid email is required')
     .normalizeEmail()
     .custom((value, { req }) => {
-      if (!value.match(/^[a-zA-Z0-9._%+-]+[0-9]{4,8}@akgec\.ac\.in$/)) {
+      if (!value.match(/^[a-zA-Z0-9._%+-]+[0-9]{4,8}-d@akgec\.ac\.in$/)) {
         throw new Error('Email must be a valid AKGEC college email (ending with @akgec.ac.in)');
       }
       // Extract the base student ID (removing "-d" if present) for email validation
