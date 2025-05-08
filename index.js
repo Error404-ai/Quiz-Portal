@@ -9,7 +9,7 @@ import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import adminDashboardRoutes from './routes/adminDashboard.js';
 import quizRoutes from './routes/quiz.js';
-import imageRoutes from './routes/image.js';
+import imageRoutes from './routes/upload.js';
 
 dotenv.config();
 connectDB();
