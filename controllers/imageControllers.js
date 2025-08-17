@@ -1,5 +1,4 @@
-import path from 'path';
-import fs from 'fs';
+const uploadImage = require('../utils/uploadImage');
 
 export const uploadQuizImage = async (req, res) => {
   try {
@@ -10,15 +9,14 @@ export const uploadQuizImage = async (req, res) => {
       });
     }
 
-    const protocol = req.secure ? 'https' : 'http';
-    const host = req.get('host');
-    const imageUrl = `${protocol}://${host}/uploads/quiz-images/${req.file.filename}`;
+    // Upload to Cloudinary and get secure URL
+    const imageUrl = await uploadImage(req.file.path);
 
     return res.status(200).json({
       success: true,
       message: 'Image uploaded successfully',
       data: {
-        imageUrl
+        imageUrl // This will be the full Cloudinary URL
       }
     });
   } catch (err) {
@@ -32,20 +30,19 @@ export const uploadQuizImage = async (req, res) => {
 
 export const deleteQuizImage = async (req, res) => {
   try {
-    const { filename } = req.params;
+    const { publicId } = req.params;
     
-    if (!filename) {
+    if (!publicId) {
       return res.status(400).json({
         success: false,
-        message: 'Filename is required'
+        message: 'Public ID is required'
       });
     }
     
-    const filePath = path.join('uploads/quiz-images', filename);
+    // Delete from Cloudinary
+    const result = await cloudinary.uploader.destroy(publicId);
     
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      
+    if (result.result === 'ok') {
       return res.status(200).json({
         success: true,
         message: 'Image deleted successfully'
