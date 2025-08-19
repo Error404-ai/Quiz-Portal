@@ -55,7 +55,7 @@ export const uploadToCloudinary = async (buffer, options = {}) => {
               api_error_code: error.api_error_code,
               fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
             });
-            reject(new Error(`Cloudinary upload failed: ${error.message || error.toString() || 'Unknown Cloudinary error'}`));
+            reject(new Error(`Cloudinary upload failed: ${typeof error === 'string' ? error : error.message || error.toString() || 'Unknown Cloudinary error'}`));
           } else if (!result) {
             console.error('Cloudinary Upload Error: No result returned');
             reject(new Error('Cloudinary upload failed: No result returned'));
