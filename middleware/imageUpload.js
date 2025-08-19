@@ -1,21 +1,7 @@
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 
-const uploadDir = 'uploads/quiz-images';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
-    cb(null, uniqueFilename);
-  }
-});
+// Use memory storage instead of disk storage for Cloudinary uploads
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {

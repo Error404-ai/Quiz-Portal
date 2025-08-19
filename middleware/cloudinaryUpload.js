@@ -10,7 +10,7 @@ import { uploadToCloudinary } from '../utils/cloudinaryUpload.js';
  */
 export const cloudinaryUploadMiddleware = (fieldName) => {
   return [
-    // First use multer to handle the file upload to local storage
+    // First use multer to handle the file upload to memory
     upload.single(fieldName),
     
     // Then process with Cloudinary
@@ -21,14 +21,19 @@ export const cloudinaryUploadMiddleware = (fieldName) => {
           return next();
         }
 
-        // Upload file to Cloudinary
-        const imageUrl = await uploadToCloudinary(req.file.path);
+        console.log('Uploading to Cloudinary...', req.file.originalname);
+        
+        // Upload file buffer to Cloudinary
+        const imageUrl = await uploadToCloudinary(req.file.buffer);
+        
+        console.log('Cloudinary upload success:', imageUrl);
         
         // Add the Cloudinary URL to the request object
         req.cloudinaryUrl = imageUrl;
         
         next();
       } catch (error) {
+        console.error('Cloudinary middleware error:', error);
         return res.status(500).json({
           success: false,
           message: `Error uploading image: ${error.message}`

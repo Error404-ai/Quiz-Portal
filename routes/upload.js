@@ -8,7 +8,7 @@ const router = express.Router();
 // Upload image route
 router.post('/upload', 
   cloudinaryUploadMiddleware('image'),
-  handleMulterError,
+  // handleMulterError,
   uploadQuizImage
 );
 
