@@ -18,10 +18,26 @@ export const cloudinaryUploadMiddleware = (fieldName) => {
       try {
         // If no file was uploaded, continue
         if (!req.file) {
+          console.log('No file uploaded in request');
           return next();
         }
 
-        console.log('Uploading to Cloudinary...', req.file.originalname);
+        console.log('File received by multer:', {
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+          hasBuffer: !!req.file.buffer,
+          bufferLength: req.file.buffer?.length
+        });
+
+        // Validate file buffer
+        if (!req.file.buffer) {
+          throw new Error('File buffer is missing');
+        }
+
+        if (req.file.buffer.length === 0) {
+          throw new Error('File buffer is empty');
+        }
         
         // Upload file buffer to Cloudinary
         const imageUrl = await uploadToCloudinary(req.file.buffer);
@@ -33,10 +49,19 @@ export const cloudinaryUploadMiddleware = (fieldName) => {
         
         next();
       } catch (error) {
-        console.error('Cloudinary middleware error:', error);
+        console.error('Cloudinary middleware error:', {
+          message: error.message,
+          stack: error.stack,
+          file: req.file ? {
+            name: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype
+          } : 'No file'
+        });
+        
         return res.status(500).json({
           success: false,
-          message: `Error uploading image: ${error.message}`
+          message: `Error uploading image: ${error.message || 'Unknown error occurred'}`
         });
       }
     }
