@@ -1,4 +1,4 @@
-const uploadImage = require('../utils/uploadImage');
+import cloudinary from '../config/cloudinary.js';
 
 export const uploadQuizImage = async (req, res) => {
   try {
@@ -9,14 +9,18 @@ export const uploadQuizImage = async (req, res) => {
       });
     }
 
-    // Upload to Cloudinary and get secure URL
-    const imageUrl = await uploadImage(req.file.path);
+    if (!req.cloudinaryUrl) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload to Cloudinary'
+      });
+    }
 
     return res.status(200).json({
       success: true,
       message: 'Image uploaded successfully',
       data: {
-        imageUrl // This will be the full Cloudinary URL
+        imageUrl: req.cloudinaryUrl 
       }
     });
   } catch (err) {

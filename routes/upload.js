@@ -1,17 +1,18 @@
-import cloudinary from '../config/cloudinary.js';
-import fs from 'fs';
+import express from 'express';
+import { cloudinaryUploadMiddleware } from '../middleware/cloudinaryUpload.js';
+import { handleMulterError } from '../middleware/imageUpload.js';
+import { uploadQuizImage, deleteQuizImage } from '../controllers/imageControllers.js';
 
-const uploadImage = async (filePath) => {
-  try {
-    const result = await cloudinary.uploader.upload(filePath, {
-      folder: 'your_folder_name', // optional
-    });
-    fs.unlinkSync(filePath); // remove file from local after upload
-    return result.secure_url; // image URL
-  } catch (error) {
-    console.error('Cloudinary Upload Error:', error);
-    throw error;
-  }
-};
+const router = express.Router();
 
-export default uploadImage;
+// Upload image route
+router.post('/upload', 
+  cloudinaryUploadMiddleware('image'),
+  handleMulterError,
+  uploadQuizImage
+);
+
+// Delete image route
+router.delete('/delete/:publicId', deleteQuizImage);
+
+export default router;

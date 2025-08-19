@@ -2,35 +2,51 @@ import cloudinary from '../config/cloudinary.js';
 import fs from 'fs';
 
 /**
- * Uploads an image to Cloudinary
- * @param {string} filePath - Path to the image file
- * @param {Object} options - Upload options
- * @returns {Promise<string>} - Returns the secure URL of the uploaded image
+ * Upload image to Cloudinary
+ * @param {string} filePath - Path to the local file
+ * @param {object} options - Cloudinary upload options
+ * @returns {string} - Cloudinary secure URL
  */
 export const uploadToCloudinary = async (filePath, options = {}) => {
   try {
-    // Set default options
-    const uploadOptions = {
-      folder: 'quiz-app',
-      resource_type: 'image',
+    const result = await cloudinary.uploader.upload(filePath, {
+      folder: 'quiz-images', // organized folder structure
+      resource_type: 'auto',
       ...options
-    };
-
-    // Upload the file to Cloudinary
-    const result = await cloudinary.uploader.upload(filePath, uploadOptions);
+    });
     
-    // Remove the file from local storage after successful upload
-    fs.unlinkSync(filePath);
+    // Clean up local file after successful upload
+    try {
+      fs.unlinkSync(filePath);
+    } catch (unlinkError) {
+      console.warn('Could not delete local file:', unlinkError.message);
+    }
     
-    // Return the secure URL
     return result.secure_url;
   } catch (error) {
-    // If there's an error and the file exists, clean it up
-    if (fs.existsSync(filePath)) {
+    // Clean up local file on error
+    try {
       fs.unlinkSync(filePath);
+    } catch (unlinkError) {
+      console.warn('Could not delete local file after error:', unlinkError.message);
     }
     
     console.error('Cloudinary Upload Error:', error);
-    throw new Error(`Image upload failed: ${error.message}`);
+    throw new Error(`Cloudinary upload failed: ${error.message}`);
+  }
+};
+
+/**
+ * Delete image from Cloudinary
+ * @param {string} publicId - Cloudinary public ID
+ * @returns {object} - Cloudinary deletion result
+ */
+export const deleteFromCloudinary = async (publicId) => {
+  try {
+    const result = await cloudinary.uploader.destroy(publicId);
+    return result;
+  } catch (error) {
+    console.error('Cloudinary Delete Error:', error);
+    throw new Error(`Cloudinary delete failed: ${error.message}`);
   }
 };
