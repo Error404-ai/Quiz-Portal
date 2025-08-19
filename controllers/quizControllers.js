@@ -572,3 +572,48 @@ export const markQuestionAttempted = async (req, res) => {
     });
   }
 };
+// Add this new function to your existing quiz.js controller file
+
+export const getQuizQuestions = async (req, res) => {
+  try {
+    const { quizId } = req.query;
+
+    if (!quizId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quiz ID is required'
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId).select('questions');
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+
+    // You might want to sanitize the data before sending it
+    // For example, if you don't want to expose correct answers
+    const sanitizedQuestions = quiz.questions.map(q => ({
+      _id: q._id,
+      questionText: q.questionText,
+      imageUrl: q.imageUrl,
+      options: q.options,
+      points: q.points
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: sanitizedQuestions.length,
+      data: sanitizedQuestions
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
