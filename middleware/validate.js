@@ -8,8 +8,8 @@ export const validateSignup = [
   // verifyRecaptcha,
   
   // Then proceed with the existing validation rules
-  body('teamName').notEmpty().trim().escape()
-    .withMessage('Team name is required'),
+  // body('teamName').notEmpty().trim().escape()
+  //   .withMessage('Team name is required'),
   body('teamLeaderName').notEmpty().trim().escape()
     .withMessage('Team leader name is required'),
   body('studentId')
