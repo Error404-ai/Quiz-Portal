@@ -2,11 +2,6 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const UserSchema = new mongoose.Schema({
-  teamName: {
-    type: String,
-    required: [true, 'Team name is required'],
-    trim: true
-  },
   teamLeaderName: {
     type: String, 
     required: [true, 'Team leader name is required'],

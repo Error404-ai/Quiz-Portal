@@ -19,10 +19,10 @@ const generateRefreshToken = (id) => {
 export const signup = async (req, res) => {
   try {
     // Modified to make password and confirmPassword optional
-    const { teamName, teamLeaderName, email, studentId, password } = req.body;
+    const {  teamLeaderName, email, studentId, password } = req.body;
 
     // Changed required fields check to exclude password
-    if (!teamName || !teamLeaderName || !email || !studentId) {
+    if (  !teamLeaderName || !email || !studentId) {
       return res.status(400).json({
         success: false,
         message: 'Please provide all required fields'
@@ -55,7 +55,7 @@ export const signup = async (req, res) => {
 
     // Create user with default password if none provided
     const user = await User.create({
-      teamName,
+      // teamName,
       teamLeaderName,
       email,
       studentId,
