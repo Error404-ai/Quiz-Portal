@@ -39,21 +39,14 @@ export const uploadToCloudinary = async (buffer, options = {}) => {
           ...options
         },
         (error, result) => {
-          console.log('Cloudinary callback executed:', {
-            hasError: !!error,
-            hasResult: !!result,
-            errorType: error ? typeof error : 'none',
-            resultType: result ? typeof result : 'none'
-          });
-
           if (error) {
-            console.error('Cloudinary Upload Error Details:', {
-              message: error.message,
+            console.error('Cloudinary Upload Error:', {
+              errorType: typeof error,
+              message: typeof error === 'string' ? error : error.message,
               name: error.name,
-              stack: error.stack,
               http_code: error.http_code,
               api_error_code: error.api_error_code,
-              fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+              fullError: typeof error === 'string' ? error : JSON.stringify(error, Object.getOwnPropertyNames(error))
             });
             reject(new Error(`Cloudinary upload failed: ${typeof error === 'string' ? error : error.message || error.toString() || 'Unknown Cloudinary error'}`));
           } else if (!result) {

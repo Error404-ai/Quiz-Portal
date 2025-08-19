@@ -5,10 +5,10 @@ import { uploadQuizImage, deleteQuizImage } from '../controllers/imageController
 
 const router = express.Router();
 
-// Upload image route
+// Upload image route with proper error handling
 router.post('/upload', 
   cloudinaryUploadMiddleware('image'),
-  // handleMulterError,
+  handleMulterError, 
   uploadQuizImage
 );
 

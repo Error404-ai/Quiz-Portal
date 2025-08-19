@@ -61,7 +61,7 @@ export const cloudinaryUploadMiddleware = (fieldName) => {
         
         return res.status(500).json({
           success: false,
-          message: `Error uploading image: ${error.message || 'Unknown error occurred'}`
+          message: `Error uploading image: ${typeof error === 'string' ? error : error.message || error.toString() || 'Unknown error occurred'}`
         });
       }
     }
