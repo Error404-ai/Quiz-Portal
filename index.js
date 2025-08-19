@@ -36,6 +36,12 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/images', imageRoutes);
+// Add this temporary test endpoint to your index.js file (after your other routes) 
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Add this temporary test endpoint to your index.js file (after your other routes)
 
 app.get('/api/test-cloudinary', async (req, res) => {
@@ -64,19 +70,47 @@ app.get('/api/test-cloudinary', async (req, res) => {
           resource_type: 'auto'
         },
         (error, result) => {
-          console.log('Cloudinary callback - Error:', !!error, 'Result:', !!result);
+          console.log('=== Cloudinary Callback Debug ===');
+          console.log('Callback executed - Error exists:', !!error, 'Result exists:', !!result);
           
           if (error) {
-            console.error('Detailed upload error:', {
-              message: error.message,
-              name: error.name,
-              http_code: error.http_code,
-              api_error_code: error.api_error_code,
-              stack: error.stack,
-              fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
-            });
+            console.log('Error type:', typeof error);
+            console.log('Error constructor:', error.constructor?.name);
+            console.log('Error keys:', Object.keys(error));
+            console.log('Error own properties:', Object.getOwnPropertyNames(error));
+            
+            // Try different ways to get error info
+            console.error('Error details:');
+            console.log('  message:', error.message);
+            console.log('  name:', error.name);
+            console.log('  toString():', error.toString());
+            console.log('  valueOf():', error.valueOf());
+            console.log('  http_code:', error.http_code);
+            console.log('  api_error_code:', error.api_error_code);
+            console.log('  stack:', error.stack);
+            
+            // Try to stringify with different methods
+            try {
+              console.log('  JSON.stringify:', JSON.stringify(error));
+            } catch (e) {
+              console.log('  JSON.stringify failed:', e.message);
+            }
+            
+            try {
+              console.log('  JSON.stringify with getOwnPropertyNames:', 
+                JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            } catch (e) {
+              console.log('  Enhanced JSON.stringify failed:', e.message);
+            }
+            
+            // Check if it's a specific Cloudinary error
+            if (error.error && error.error.message) {
+              console.log('  Nested error message:', error.error.message);
+            }
+            
             reject(error);
           } else if (!result) {
+            console.log('No result returned from Cloudinary');
             reject(new Error('No result returned from Cloudinary'));
           } else {
             console.log('Upload successful:', {
@@ -86,6 +120,7 @@ app.get('/api/test-cloudinary', async (req, res) => {
             });
             resolve(result);
           }
+          console.log('=== End Callback Debug ===');
         }
       );
       
@@ -108,24 +143,50 @@ app.get('/api/test-cloudinary', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Test endpoint error:', {
-      message: error.message,
-      name: error.name,
-      stack: error.stack
-    });
+    console.error('=== Test Endpoint Error Debug ===');
+    console.log('Error type:', typeof error);
+    console.log('Error constructor:', error.constructor?.name);
+    console.log('Error is instance of Error:', error instanceof Error);
+    
+    // Detailed error inspection
+    console.error('Error properties:');
+    console.log('  message:', error.message);
+    console.log('  name:', error.name);
+    console.log('  toString():', error.toString());
+    console.log('  stack:', error.stack);
+    
+    // Check for different error types
+    if (error.http_code) {
+      console.log('  http_code:', error.http_code);
+    }
+    if (error.api_error_code) {
+      console.log('  api_error_code:', error.api_error_code);
+    }
+    if (error.error) {
+      console.log('  nested error:', error.error);
+    }
+    
+    // Try to get any usable error message
+    const errorMessage = error.message || 
+                        error.toString() || 
+                        (error.error && error.error.message) ||
+                        'Completely unknown error';
+    
+    console.log('Final error message used:', errorMessage);
+    console.log('=== End Error Debug ===');
     
     res.status(500).json({
       success: false,
-      message: `Cloudinary test failed: ${error.message}`,
-      error: error.name
+      message: `Cloudinary test failed: ${errorMessage}`,
+      error: error.name || 'UnknownError',
+      debug: {
+        hasMessage: !!error.message,
+        errorType: typeof error,
+        constructorName: error.constructor?.name
+      }
     });
   }
 });
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
