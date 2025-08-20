@@ -572,11 +572,11 @@ export const markQuestionAttempted = async (req, res) => {
     });
   }
 };
-// Add this new function to your existing quiz.js controller file
 
 export const getQuizQuestions = async (req, res) => {
   try {
     const { quizId } = req.query;
+    const userId = req.user.id;
 
     if (!quizId) {
       return res.status(400).json({
@@ -585,7 +585,7 @@ export const getQuizQuestions = async (req, res) => {
       });
     }
 
-    const quiz = await Quiz.findById(quizId).select('questions');
+    const quiz = await Quiz.findById(quizId);
 
     if (!quiz) {
       return res.status(404).json({
@@ -594,26 +594,115 @@ export const getQuizQuestions = async (req, res) => {
       });
     }
 
-    // You might want to sanitize the data before sending it
-    // For example, if you don't want to expose correct answers
-    const sanitizedQuestions = quiz.questions.map(q => ({
-      _id: q._id,
-      questionText: q.questionText,
-      imageUrl: q.imageUrl,
-      options: q.options,
-      points: q.points
-    }));
+    if (!quiz.questions || quiz.questions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No questions found in this quiz'
+      });
+    }
 
-    res.status(200).json({
-      success: true,
-      count: sanitizedQuestions.length,
-      data: sanitizedQuestions
+    // Get or create result for this user and quiz
+    let existingResult = await Result.findOne({
+      user: userId,
+      quiz: quiz._id
     });
+
+    let userAttemptedQuestions = [];
+
+    if (!existingResult) {
+      // Create new result with question order
+      const questionOrder = quiz.shuffleQuestions
+        ? shuffleArray(quiz.questions.map(q => q._id.toString()))
+        : quiz.questions.map(q => q._id.toString());
+      
+      existingResult = await Result.create({
+        user: userId,
+        quiz: quiz._id,
+        startTime: new Date(),
+        answers: [],
+        score: 0,
+        attemptedQuestions: [],
+        questionOrder: questionOrder
+      });
+    } else {
+    
+      if (!existingResult.questionOrder || existingResult.questionOrder.length === 0) {
+        const questionOrder = quiz.shuffleQuestions
+          ? shuffleArray(quiz.questions.map(q => q._id.toString()))
+          : quiz.questions.map(q => q._id.toString());
+        
+        existingResult.questionOrder = questionOrder;
+        await existingResult.save();
+      }
+      
+      userAttemptedQuestions = existingResult.attemptedQuestions || [];
+    }
+
+    // Order questions based on user's question order
+    let orderedQuestions = [];
+    
+    if (existingResult.questionOrder && existingResult.questionOrder.length > 0) {
+      orderedQuestions = existingResult.questionOrder.map(questionId => {
+        const question = quiz.questions.find(q => q._id.toString() === questionId);
+        if (!question) return null;
+        
+        return {
+          _id: question._id,
+          questionText: question.questionText,
+          imageUrl: question.imageUrl || null,
+          options: question.options,
+          points: question.points || 1,
+          attempted: userAttemptedQuestions.some(id => id.toString() === question._id.toString())
+        };
+      }).filter(q => q !== null);
+    } else {
+      // Fallback to original order
+      orderedQuestions = quiz.questions.map(q => ({
+        _id: q._id,
+        questionText: q.questionText,
+        imageUrl: q.imageUrl || null,
+        options: q.options,
+        points: q.points || 1,
+        attempted: userAttemptedQuestions.some(id => id.toString() === q._id.toString())
+      }));
+    }
+
+    // Calculate total possible points
+    const totalPoints = quiz.questions.reduce((acc, q) => acc + (q.points || 1), 0);
+
+    // Calculate current user score (if quiz is already submitted)
+    let currentScore = 0;
+    if (existingResult.answers && existingResult.answers.length > 0) {
+      currentScore = existingResult.score || 0;
+    }
+
+    const responseData = {
+      success: true,
+      data: {
+        quizId: quiz._id,
+        quizTitle: quiz.title,
+        description: quiz.description || null,
+        timeLimit: quiz.timeLimit || 0,
+        difficulty: quiz.difficulty || 'medium',
+        status: quiz.status,
+        totalQuestions: quiz.questions.length,
+        totalPoints: totalPoints,
+        currentScore: currentScore,
+        shuffled: quiz.shuffleQuestions || false,
+        userStartTime: existingResult.startTime,
+        userSubmittedAt: existingResult.submittedAt || null,
+        isCompleted: (existingResult.answers && existingResult.answers.length > 0),
+        questions: orderedQuestions
+      }
+    };
+
+    res.status(200).json(responseData);
   } catch (err) {
-    console.error(err);
+    console.error('Error getting quiz questions:', err);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 };
