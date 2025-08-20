@@ -458,7 +458,7 @@ export const getQuizResults = async (req, res) => {
       : { title: "All Quizzes", questions: [] };
     
     const results = await Result.find(query)
-      .populate('user', 'teamName email')
+      .populate('user', 'teamLeaderName email')
       .sort('-score');
     
     const totalParticipants = results.length;
@@ -534,7 +534,7 @@ export const getQuizResults = async (req, res) => {
         const startTime = new Date(result.startTime);
         const endTime = new Date(result.submittedAt);
         
-        console.log(`Team: ${result.user?.teamName}, StartTime: ${startTime}, SubmitTime: ${endTime}`);
+        console.log(`Team: ${result.user?.teamLeaderName}, StartTime: ${startTime}, SubmitTime: ${endTime}`);
         
         if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime())) {
           const durationInMs = endTime - startTime;
@@ -548,7 +548,7 @@ export const getQuizResults = async (req, res) => {
       }
       
       return {
-        teamName: result.user?.teamName || 'Unknown Team',
+        teamLeaderName: result.user?.teamLeaderName || 'Unknown Team',
         finalScore: totalPossibleScore > 0 
           ? ((result.score / totalPossibleScore) * 100).toFixed(0) + '%' 
           : '0%',
