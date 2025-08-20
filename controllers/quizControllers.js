@@ -576,12 +576,19 @@ export const markQuestionAttempted = async (req, res) => {
 export const getQuizQuestions = async (req, res) => {
   try {
     const { quizId } = req.query;
-    const userId = req.user.id;
+    const userId = req.user?.id; // Use optional chaining to safely access req.user.id
 
     if (!quizId) {
       return res.status(400).json({
         success: false,
-        message: 'Quiz ID is required'
+        message: 'Quiz ID is required.',
+      });
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID is missing.',
       });
     }
 
@@ -590,31 +597,32 @@ export const getQuizQuestions = async (req, res) => {
     if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: 'Quiz not found'
+        message: 'Quiz not found.',
       });
     }
 
     if (!quiz.questions || quiz.questions.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'No questions found in this quiz'
+        message: 'No questions found in this quiz.',
       });
     }
 
     // Get or create result for this user and quiz
     let existingResult = await Result.findOne({
       user: userId,
-      quiz: quiz._id
+      quiz: quiz._id,
     });
 
     let userAttemptedQuestions = [];
+    let questionOrder;
 
     if (!existingResult) {
       // Create new result with question order
-      const questionOrder = quiz.shuffleQuestions
-        ? shuffleArray(quiz.questions.map(q => q._id.toString()))
-        : quiz.questions.map(q => q._id.toString());
-      
+      questionOrder = quiz.shuffleQuestions
+        ? shuffleArray(quiz.questions.map((q) => q._id.toString()))
+        : quiz.questions.map((q) => q._id.toString());
+
       existingResult = await Result.create({
         user: userId,
         quiz: quiz._id,
@@ -622,59 +630,46 @@ export const getQuizQuestions = async (req, res) => {
         answers: [],
         score: 0,
         attemptedQuestions: [],
-        questionOrder: questionOrder
+        questionOrder: questionOrder,
       });
     } else {
-    
+      // If result exists, use its question order. If not, create one.
       if (!existingResult.questionOrder || existingResult.questionOrder.length === 0) {
-        const questionOrder = quiz.shuffleQuestions
-          ? shuffleArray(quiz.questions.map(q => q._id.toString()))
-          : quiz.questions.map(q => q._id.toString());
-        
+        questionOrder = quiz.shuffleQuestions
+          ? shuffleArray(quiz.questions.map((q) => q._id.toString()))
+          : quiz.questions.map((q) => q._id.toString());
+
         existingResult.questionOrder = questionOrder;
         await existingResult.save();
+      } else {
+        questionOrder = existingResult.questionOrder;
       }
-      
       userAttemptedQuestions = existingResult.attemptedQuestions || [];
     }
 
     // Order questions based on user's question order
-    let orderedQuestions = [];
-    
-    if (existingResult.questionOrder && existingResult.questionOrder.length > 0) {
-      orderedQuestions = existingResult.questionOrder.map(questionId => {
-        const question = quiz.questions.find(q => q._id.toString() === questionId);
+    const orderedQuestions = questionOrder
+      .map((questionId) => {
+        const question = quiz.questions.find((q) => q._id.toString() === questionId);
         if (!question) return null;
-        
+
+        const isAttempted = userAttemptedQuestions.some(
+          (id) => id.toString() === question._id.toString()
+        );
+
         return {
           _id: question._id,
           questionText: question.questionText,
           imageUrl: question.imageUrl || null,
           options: question.options,
           points: question.points || 1,
-          attempted: userAttemptedQuestions.some(id => id.toString() === question._id.toString())
+          attempted: isAttempted,
         };
-      }).filter(q => q !== null);
-    } else {
-      // Fallback to original order
-      orderedQuestions = quiz.questions.map(q => ({
-        _id: q._id,
-        questionText: q.questionText,
-        imageUrl: q.imageUrl || null,
-        options: q.options,
-        points: q.points || 1,
-        attempted: userAttemptedQuestions.some(id => id.toString() === q._id.toString())
-      }));
-    }
+      })
+      .filter((q) => q !== null);
 
     // Calculate total possible points
     const totalPoints = quiz.questions.reduce((acc, q) => acc + (q.points || 1), 0);
-
-    // Calculate current user score (if quiz is already submitted)
-    let currentScore = 0;
-    if (existingResult.answers && existingResult.answers.length > 0) {
-      currentScore = existingResult.score || 0;
-    }
 
     const responseData = {
       success: true,
@@ -687,13 +682,13 @@ export const getQuizQuestions = async (req, res) => {
         status: quiz.status,
         totalQuestions: quiz.questions.length,
         totalPoints: totalPoints,
-        currentScore: currentScore,
+        currentScore: existingResult.score || 0,
         shuffled: quiz.shuffleQuestions || false,
         userStartTime: existingResult.startTime,
         userSubmittedAt: existingResult.submittedAt || null,
-        isCompleted: (existingResult.answers && existingResult.answers.length > 0),
-        questions: orderedQuestions
-      }
+        isCompleted: existingResult.isCompleted || false, // Assuming you have an isCompleted field
+        questions: orderedQuestions,
+      },
     };
 
     res.status(200).json(responseData);
@@ -701,8 +696,8 @@ export const getQuizQuestions = async (req, res) => {
     console.error('Error getting quiz questions:', err);
     res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      message: 'Server error.',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
     });
   }
 };
