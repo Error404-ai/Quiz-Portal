@@ -12,7 +12,6 @@ const shuffleArray = (array) => {
 };
 
 // Helper function to get or create question order for a user
-// Helper function to get or create question order for a user
 const getOrCreateQuestionOrder = async (userId, quiz) => {
   let existingResult = await Result.findOne({
     user: userId,

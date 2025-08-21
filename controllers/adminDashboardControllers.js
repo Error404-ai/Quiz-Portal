@@ -349,7 +349,7 @@ export const getQuizDetails = async (req, res) => {
       timeLimit: quiz.timeLimit || 0,
       difficulty: quiz.difficulty || "medium",
       status: quiz.status,
-      shuffleQuestions: quiz.shuffleQuestions || false,
+      shuffleQuestions: quiz.shuffleQuestions || true,
       startTime: quiz.startTime,
       endTime: quiz.endTime,
       createdAt: quiz.createdAt
