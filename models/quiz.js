@@ -54,7 +54,7 @@ const QuizSchema = new mongoose.Schema({
   },
   shuffleQuestions: {
     type: Boolean,
-    default: false
+    default: true
   },
   questions: [QuestionSchema],
   startTime: {
