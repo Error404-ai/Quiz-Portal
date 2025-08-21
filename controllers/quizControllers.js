@@ -12,6 +12,7 @@ const shuffleArray = (array) => {
 };
 
 // Helper function to get or create question order for a user
+// Helper function to get or create question order for a user
 const getOrCreateQuestionOrder = async (userId, quiz) => {
   let existingResult = await Result.findOne({
     user: userId,
@@ -19,8 +20,10 @@ const getOrCreateQuestionOrder = async (userId, quiz) => {
   });
 
   if (!existingResult) {
-    // Create new result with proper question order
-    const questionOrder = quiz.shuffleQuestions 
+    // Use true as default if shuffleQuestions is false or undefined
+    const shouldShuffle = quiz.shuffleQuestions !== false; 
+    
+    const questionOrder = shouldShuffle
       ? shuffleArray(quiz.questions.map(q => q._id.toString())) 
       : quiz.questions.map(q => q._id.toString());
     
@@ -34,17 +37,19 @@ const getOrCreateQuestionOrder = async (userId, quiz) => {
       questionOrder: questionOrder
     });
     
-    console.log(`Created new result with shuffled order:`, quiz.shuffleQuestions ? 'YES' : 'NO');
+    console.log(`Created new result with shuffled order:`, shouldShuffle ? 'YES' : 'NO');
   } else if (!existingResult.questionOrder || existingResult.questionOrder.length === 0) {
-    // Update existing result that's missing question order
-    const questionOrder = quiz.shuffleQuestions 
+    // Use true as default if shuffleQuestions is false or undefined
+    const shouldShuffle = quiz.shuffleQuestions !== false;
+    
+    const questionOrder = shouldShuffle
       ? shuffleArray(quiz.questions.map(q => q._id.toString())) 
       : quiz.questions.map(q => q._id.toString());
     
     existingResult.questionOrder = questionOrder;
     await existingResult.save();
     
-    console.log(`Updated existing result with shuffled order:`, quiz.shuffleQuestions ? 'YES' : 'NO');
+    console.log(`Updated existing result with shuffled order:`, shouldShuffle ? 'YES' : 'NO');
   }
 
   return existingResult;
