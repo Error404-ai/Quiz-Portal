@@ -11,7 +11,7 @@ export const validateSignup = [
   // body('teamName').notEmpty().trim().escape()
   //   .withMessage('Team name is required'),
   body('teamLeaderName').notEmpty().trim().escape()
-    .withMessage('Team leader name is required'),
+    .withMessage('Provide your Full Name'),
   body('studentId')
     .notEmpty().withMessage('Student ID is required')
     .trim()
@@ -20,7 +20,7 @@ export const validateSignup = [
       // Allows: 23XXXX, 24XXXX, 23XXXX-d, 24XXXX-d patterns
       const studentIdRegex = /^(23|24)\d{2,8}(-d)?$/;
       if (!studentIdRegex.test(value)) {
-        throw new Error('Student ID must start with 23 or 24, be 4-10 digits long, and can optionally end with "-d"');
+        throw new Error('Provide a valid Student Id');
       }
       return true;
     }),
