@@ -457,8 +457,9 @@ export const getQuizResults = async (req, res) => {
       ? await Quiz.findById(_id) 
       : { title: "All Quizzes", questions: [] };
     
+    // Updated populate to include studentId
     const results = await Result.find(query)
-      .populate('user', 'teamLeaderName email')
+      .populate('user', 'teamLeaderName email studentId')
       .sort('-score');
     
     const totalParticipants = results.length;
@@ -527,6 +528,7 @@ export const getQuizResults = async (req, res) => {
       });
     }
 
+    // Updated teamResults to include studentId
     const teamResults = results.map(result => {
       let timeTaken = 'N/A';
       
@@ -549,6 +551,7 @@ export const getQuizResults = async (req, res) => {
       
       return {
         teamLeaderName: result.user?.teamLeaderName || 'Unknown Team',
+        studentId: result.user?.studentId || 'N/A', // Added studentId field
         finalScore: totalPossibleScore > 0 
           ? ((result.score / totalPossibleScore) * 100).toFixed(0) + '%' 
           : '0%',
@@ -579,6 +582,7 @@ export const getQuizResults = async (req, res) => {
     });
   }
 };
+
 //delete questions
 export const deleteQuizQuestion = async (req, res) => {
   try {
